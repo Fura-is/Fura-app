@@ -261,6 +261,7 @@
     .job-title { font-size: 1.05rem; font-weight: 800; }
     .job-meta { font-size: 0.8rem; color: var(--muted); margin-top: 0.2rem; }
     .job-dates { font-size: 0.78rem; color: var(--muted); margin-top: 0.3rem; line-height: 1.5; }
+    .job-date-future { display: inline-block; margin-top: 0.4rem; padding: 0.4rem 0.75rem; background: var(--rust); color: #fff; font-size: 0.95rem; font-weight: 800; border-radius: 7px; letter-spacing: 0.01em; }
     .job-date-line { display: flex; gap: 0.4rem; align-items: baseline; }
     .job-date-label { font-size: 0.6rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; min-width: 56px; }
     .job-date-label.job-date-done { color: var(--green); }
@@ -458,6 +459,7 @@
       <button class="tab-btn tab-primary active" onclick="switchTab('jobs', this)">Beiðnir</button>
       <button class="tab-btn tab-primary" onclick="switchTab('new-job', this)">+ Ný beiðni</button>
       <button class="tab-btn tab-primary" id="utleiga-tab-btn" onclick="switchTab('utleiga', this)">🚛 Gámar</button>
+      <button class="tab-btn tab-primary" id="kor-tab-btn" onclick="switchTab('kor', this)">🛢 Kör</button>
       <button class="tab-btn tab-secondary" onclick="switchTab('geymsla', this)">🗄 Geymsla</button>
       <button class="tab-btn tab-secondary" id="requests-tab-btn" onclick="switchTab('requests', this)">Bílstjórar</button>
     </div>
@@ -596,7 +598,7 @@
     <div class="tab-panel" id="tab-geymsla">
       <div class="geymsla-search-wrap">
         <svg class="geymsla-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="geymsla-search" placeholder="Leita eftir fyrirtæki eða gámanúmeri..." oninput="renderGeymsla()" />
+        <input type="text" id="geymsla-search" placeholder="Leita eftir fyrirtæki, gámanúmeri eða karnúmeri..." oninput="renderGeymsla()" />
       </div>
       <div class="geymsla-date-row">
         <div class="geymsla-date-field">
@@ -627,8 +629,32 @@
       </div>
       <div id="utleiga-summary" class="utleiga-summary"></div>
       <div class="utleiga-layout" id="utleiga-layout">
-        <div id="utleiga-list"></div>
+        <div>
+          <div id="utleiga-list"></div>
+          <div id="utleiga-kor-section" style="margin-top:1.5rem;">
+            <div class="section-heading" style="display:flex;align-items:center;gap:0.5rem;margin:0 0 0.5rem 0;">
+              <span>🛢 Kör</span>
+              <span id="utleiga-kor-count" style="font-size:0.78rem;color:var(--muted);font-weight:500;"></span>
+            </div>
+            <div id="utleiga-kor-list"></div>
+          </div>
+        </div>
         <div id="utleiga-billing-panel" class="utleiga-billing-panel" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- KÖR -->
+    <div class="tab-panel" id="tab-kor">
+      <div class="utleiga-toolbar">
+        <div class="geymsla-search-wrap" style="flex:1;margin:0;">
+          <span class="geymsla-search-icon">🔍</span>
+          <input type="text" id="kor-search" placeholder="Leita eftir karnúmeri, fyrirtæki, staðsetningu eða efni..." oninput="renderKor()" />
+        </div>
+      </div>
+      <div id="kor-summary" class="utleiga-summary"></div>
+      <div class="utleiga-layout" id="kor-layout">
+        <div id="kor-list"></div>
+        <div id="kor-billing-panel" class="utleiga-billing-panel" style="display:none;"></div>
       </div>
     </div>
 
@@ -790,7 +816,7 @@
   const db = getFirestore(fireApp);
 
   // ── LOCAL CACHE (kept in sync by onSnapshot) ───────────────────────────────
-  let appData = { jobs: [], driverRequests: [], approvedDrivers: [], containers: [] };
+  let appData = { jobs: [], driverRequests: [], approvedDrivers: [], containers: [], kars: [] };
   let _loggedIn = false;
 
   function getData() { return appData; }
@@ -824,6 +850,12 @@
     await setDoc(doc(db,'containers', key), cleanObj(d)).catch(fsErr('gám'));
   }
   async function fsDeleteContainerByKey(key) { await deleteDoc(doc(db,'containers', key)).catch(fsErr('eyðingu gáms')); }
+  async function fsSetKar(k) {
+    const key = k._key || k.id;
+    const {_key, ...d} = k;
+    await setDoc(doc(db,'kars', key), cleanObj(d)).catch(fsErr('kar'));
+  }
+  async function fsDeleteKarByKey(key) { await deleteDoc(doc(db,'kars', key)).catch(fsErr('eyðingu kars')); }
 
   // Global ever-increasing beiðni counter (never reused, survives deletions).
   async function nextBeidniNumber() {
@@ -841,11 +873,13 @@
     appData.jobs = snap.docs.map(d => ({id:d.id,...d.data()}));
     if (!_loggedIn) return;
     updateUtleigaCount();
+    updateKorCount();
     const active = document.querySelector('.tab-panel.active');
     if (!active) return;
     if (active.id==='tab-jobs')    renderJobsList();
     if (active.id==='tab-geymsla') renderGeymsla();
     if (active.id==='tab-utleiga') renderBillingPanel();
+    if (active.id==='tab-kor')     renderKorBillingPanel();
     updateRequestsBadge();
   });
   onSnapshot(collection(db,'driverRequests'), snap => {
@@ -873,6 +907,17 @@
     const active = document.querySelector('.tab-panel.active');
     if (active && active.id==='tab-utleiga') renderUtleiga();
     updateUtleigaCount();
+  });
+  onSnapshot(collection(db,'kars'), snap => {
+    appData.kars = snap.docs.map(d => {
+      const data = d.data();
+      return { ...data, _key: d.id, id: data.id || d.id };
+    });
+    if (!_loggedIn) return;
+    const active = document.querySelector('.tab-panel.active');
+    if (active && active.id==='tab-kor') renderKor();
+    if (active && active.id==='tab-utleiga') renderUtleiga();
+    updateKorCount();
   });
 
   const DIRECTOR_PASSWORD = 'fura2024';
@@ -915,6 +960,8 @@
     _loggedIn = true;
     renderJobsList();
     updateRequestsBadge();
+    updateUtleigaCount();
+    updateKorCount();
   }
   const SESSION_MAX_MS = 7 * 24 * 60 * 60 * 1000; // 1 week
   window.doLogin = function() {
@@ -1066,6 +1113,7 @@
     if (name === 'requests') renderRequests();
     if (name === 'geymsla') window.clearGeymslaFilters();
     if (name === 'utleiga') renderUtleiga();
+    if (name === 'kor') renderKor();
   };
 
   function updateRequestsBadge() {
@@ -1146,10 +1194,165 @@
     let pending = 0;
     for (const job of appData.jobs) {
       if (!job.rentalSummaries) continue;
+      if (KAR_JOB_TYPES.includes(job.jobType)) continue;
       for (const s of job.rentalSummaries) if (s.inBillingPanel) pending++;
     }
     if (pending > 0) btn.innerHTML = `🚛 Gámar <span class="badge" style="background:var(--rust);">${pending}</span>`;
     else btn.innerHTML = '🚛 Gámar';
+  }
+
+  function updateKorCount() {
+    const btn = document.getElementById('kor-tab-btn');
+    if (!btn) return;
+    let pending = 0;
+    for (const job of appData.jobs) {
+      if (!job.rentalSummaries) continue;
+      if (!KAR_JOB_TYPES.includes(job.jobType)) continue;
+      for (const s of job.rentalSummaries) if (s.inBillingPanel) pending++;
+    }
+    if (pending > 0) btn.innerHTML = `🛢 Kör <span class="badge" style="background:var(--rust);">${pending}</span>`;
+    else btn.innerHTML = '🛢 Kör';
+  }
+
+  function sortKars(list) {
+    return [...list].sort((a, b) => {
+      const aNum = parseFloat(a.id);
+      const bNum = parseFloat(b.id);
+      const aIsNum = !isNaN(aNum);
+      const bIsNum = !isNaN(bNum);
+      if (aIsNum && bIsNum && aNum !== bNum) return aNum - bNum;
+      if (aIsNum && !bIsNum) return -1;
+      if (!aIsNum && bIsNum) return 1;
+      return String(a.id).localeCompare(String(b.id));
+    });
+  }
+
+  function karCard(k) {
+    const isUtleigu = k.status === 'utleigu';
+    const statusTag = isUtleigu
+      ? `<span class="container-status-tag container-status-utleigu">Úti</span>`
+      : `<span class="container-status-tag container-status-heima">Heima</span>`;
+    const efni = efniDisplay(k);
+    const days = isUtleigu ? daysSince(k.placedAt) : null;
+    const daysStr = days != null ? daysLabel(days) : '';
+    const placedStr = k.placedAt ? fmtIcelandicDate(k.placedAt) : '';
+
+    let row2 = '';
+    if (isUtleigu) {
+      const isUnknown = !k.company && !k.where;
+      const where = k.company && k.where ? `${k.company} — ${k.where}` : (k.company || k.where || '(óþekkt)');
+      row2 = `
+        <div class="container-row2">
+          <div>📍 <strong>${escHtml(where)}</strong></div>
+          ${k.contact ? `<div>👤 ${escHtml(k.contact)}</div>` : ''}
+          ${placedStr ? `<div>🗓 Sett ${placedStr} · ⏱ ${daysStr}</div>` : ''}
+          ${efni ? `<div>♻ <span class="container-efni">${escHtml(efni)}</span></div>` : ''}
+          ${k.note ? `<div style="margin-top:0.25rem;">📝 ${escHtml(k.note)}</div>` : ''}
+          ${isUnknown ? `<div class="container-warning">⚠ Óþekkt staðsetning — láttu vita þegar þú finnur hvar karið er</div>` : ''}
+        </div>`;
+    } else {
+      row2 = `
+        <div class="container-row2">
+          ${placedStr ? `<div>Síðast skráð: ${placedStr}</div>` : ''}
+          ${k.note ? `<div style="margin-top:0.25rem;">📝 ${escHtml(k.note)}</div>` : ''}
+        </div>`;
+    }
+
+    const cardClass = isUtleigu ? 'status-utleigu' : 'status-heima';
+    return `
+      <div class="container-card ${cardClass}">
+        <div class="container-row1">
+          <span class="container-num">#${escHtml(k.id)}</span>
+          ${statusTag}
+        </div>
+        ${row2}
+        <div class="container-actions">
+          <button class="btn btn-red btn-sm" onclick="deleteKar('${escHtml(k._key).replace(/'/g, "\\'")}')">Eyða</button>
+        </div>
+      </div>`;
+  }
+
+  window.deleteKar = async function(key) {
+    const k = appData.kars.find(x => x._key === key);
+    if (!k) return;
+    const extra = k.status === 'utleigu' ? '\n\nAthuga: karið er skráð í útleigu — eyðing hefur ekki áhrif á beiðnir sem eru þegar tengdar.' : '';
+    if (!confirm(`Eyða kari #${k.id} úr kerfinu?${extra}\n\nÞetta er ekki hægt að afturkalla.`)) return;
+    await fsDeleteKarByKey(key);
+    showToast('Kar fjarlægt');
+  };
+
+  function renderKor() {
+    const listEl = document.getElementById('kor-list');
+    const sumEl = document.getElementById('kor-summary');
+    if (!listEl) return;
+    const q = (document.getElementById('kor-search')?.value || '').trim().toLowerCase();
+    const all = appData.kars;
+    const total = all.length;
+    const utleigu = all.filter(k => k.status === 'utleigu').length;
+    const heima = all.filter(k => k.status === 'heima').length;
+    sumEl.innerHTML = `<strong>${total}</strong> kör alls · <strong style="color:var(--rust);">${utleigu}</strong> úti · <strong style="color:var(--green);">${heima}</strong> heima`;
+
+    let list = sortKars(all);
+    if (q) {
+      list = list.filter(k => {
+        const blob = [k.id, k.company, k.where, k.note, k.contact, efniDisplay(k)].filter(Boolean).join(' ').toLowerCase();
+        return blob.includes(q);
+      });
+    }
+
+    if (list.length === 0) {
+      listEl.innerHTML = total === 0
+        ? `<div class="empty-state"><div class="icon">🛢</div>Engin kör í kerfinu enn<br><small style="font-size:0.8rem;margin-top:0.5rem;display:block;">Kar bætist við sjálfvirkt þegar bílstjóri klárar kar-beiðni með númeri (t.d. 26-118)</small></div>`
+        : `<div class="empty-state"><div class="icon">🔍</div>Engin kör fundust</div>`;
+    } else {
+      listEl.innerHTML = list.map(karCard).join('');
+    }
+    renderKorBillingPanel();
+  }
+
+  function renderKorBillingPanel() {
+    const panel = document.getElementById('kor-billing-panel');
+    const layout = document.getElementById('kor-layout');
+    if (!panel || !layout) return;
+    const items = collectBillingItems().filter(it => KAR_JOB_TYPES.includes(it.jobType));
+    if (items.length === 0) {
+      panel.style.display = 'none';
+      layout.classList.remove('has-billing');
+      return;
+    }
+    panel.style.display = 'block';
+    layout.classList.add('has-billing');
+    const cards = items.map(s => {
+      const isStart = s.type === 'start';
+      const placedFmt = fmtIcelandicDate(s.placedAt);
+      const returnedFmt = isStart ? '' : fmtIcelandicDate(s.returnedAt);
+      const efniText = s.efni === 'annad' ? (s.efniLabel || 'Annað') : (efniLabels[s.efni] || '');
+      const wherePart = s.company && s.where ? `${escHtml(s.company)} — ${escHtml(s.where)}` : escHtml(s.company || s.where || '—');
+      const jobTypeText = jobTypeRentalLabel(s.jobType);
+      const title = isStart ? 'Útleiga byrjuð' : 'Vantar skráningu';
+      const datesLine = isStart
+        ? `<div class="billing-card-line muted">Sett þann ${placedFmt}</div>`
+        : `<div class="billing-card-line">⏱ <strong>${daysLabel(s.days)}</strong></div><div class="billing-card-line muted">${placedFmt} → ${returnedFmt}</div>`;
+      const copyAttrs = isStart
+        ? `data-num="${escHtml(s.containerId)}" data-from="${placedFmt}" data-to="" data-days=""`
+        : `data-num="${escHtml(s.containerId)}" data-from="${placedFmt}" data-to="${returnedFmt}" data-days="${s.days}"`;
+      return `<div class="billing-card">
+        <div class="billing-card-title">${title}</div>
+        <div class="billing-card-num">Kar #${escHtml(s.containerId)}</div>
+        ${jobTypeText ? `<div class="billing-card-line billing-jobtype-line">🛢 <strong>${jobTypeText}</strong></div>` : ''}
+        <div class="billing-card-line"><strong>📍 ${wherePart}</strong></div>
+        ${datesLine}
+        ${efniText ? `<div class="billing-card-line">♻ <span class="billing-efni">${escHtml(efniText)}</span></div>` : ''}
+        <div class="billing-card-copy">
+          <button class="rental-copy-btn" ${copyAttrs} onclick="copyRentalRow(this)">📋 Afrita fyrir Excel</button>
+        </div>
+        <div class="billing-card-actions" style="display:flex;gap:0.4rem;">
+          <button class="btn btn-outline btn-sm" style="flex:1;" onclick="editJob('${escHtml(s.jobId)}')">Breyta</button>
+          <button class="btn btn-green btn-sm" style="flex:1;" onclick="markBillingDone('${escHtml(s.jobId)}','${escHtml(s.containerId).replace(/'/g, "\\'")}','${escHtml(s.placedAt)}')">✓ Búið að skrá</button>
+        </div>
+      </div>`;
+    }).join('');
+    panel.innerHTML = `<div class="billing-panel-header">📋 Karskjal — bíður skráningar (${items.length})</div>${cards}`;
   }
 
   function efniDisplay(c) {
@@ -1174,7 +1377,7 @@
     const panelEl = document.getElementById('utleiga-billing-panel');
     const layoutEl = document.getElementById('utleiga-layout');
     if (!panelEl || !layoutEl) return;
-    const items = collectBillingItems();
+    const items = collectBillingItems().filter(it => !KAR_JOB_TYPES.includes(it.jobType));
     if (items.length === 0) {
       panelEl.style.display = 'none';
       layoutEl.classList.remove('has-billing');
@@ -1245,6 +1448,30 @@
       listEl.innerHTML = list.map(containerCard).join('');
     }
     renderBillingPanel();
+    renderUtleigaKorSection(q);
+  }
+
+  function renderUtleigaKorSection(q) {
+    const sectionEl = document.getElementById('utleiga-kor-section');
+    const listEl = document.getElementById('utleiga-kor-list');
+    const countEl = document.getElementById('utleiga-kor-count');
+    if (!sectionEl || !listEl) return;
+    const all = appData.kars;
+    if (all.length === 0) { sectionEl.style.display = 'none'; return; }
+    sectionEl.style.display = 'block';
+    let list = sortKars(all);
+    if (q) {
+      list = list.filter(k => {
+        const blob = [k.id, k.company, k.where, k.note, k.contact, efniDisplay(k)].filter(Boolean).join(' ').toLowerCase();
+        return blob.includes(q);
+      });
+    }
+    const utleigu = all.filter(k => k.status === 'utleigu').length;
+    const heima = all.filter(k => k.status === 'heima').length;
+    if (countEl) countEl.textContent = `· ${all.length} alls · ${utleigu} úti · ${heima} heima`;
+    listEl.innerHTML = list.length === 0
+      ? `<div class="empty-state" style="padding:1rem 0;"><small>Engin kör passa við leitina</small></div>`
+      : list.map(karCard).join('');
   }
 
   function containerCard(c) {
@@ -1599,7 +1826,10 @@
   }
 
   function jobTypeRentalLabel(jt) {
-    return ({ sekja: 'Gámur tekinn', losa: 'Gámur losaður', skipta: 'Gámar skiptir', fara: 'Vantar gám' })[jt] || '';
+    return ({
+      sekja: 'Gámur tekinn', losa: 'Gámur losaður', skipta: 'Gámar skiptir', fara: 'Vantar gám',
+      'taka-kar': 'Kar sótt', 'losa-kar': 'Kar losað', 'skipta-kari': 'Skipta kari', 'vantar-kar': 'Kar sett út'
+    })[jt] || '';
   }
 
   window.copyRentalRow = function(btn) {
@@ -2360,6 +2590,18 @@
     document.getElementById('done-jobs-list').innerHTML = done.length ? done.map(wrapJobRow).join('') : '<div class="empty-state" style="padding:1rem 0;">Engar loknar beiðnir</div>';
   }
 
+  function futureDayLabel(iso) {
+    if (!iso || !/^\d{4}-\d{2}-\d{2}/.test(iso)) return '';
+    const [y, m, d] = iso.split('-').map(Number);
+    const target = new Date(y, m - 1, d);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diff = Math.round((target - today) / 86400000);
+    if (diff <= 0) return '';
+    if (diff === 1) return 'Á morgun';
+    return `Eftir ${diff} daga`;
+  }
+
   function jobCard(job) {
     const statusLabel = { new: 'Bíður svars', accepted: 'Samþykkt', onway: 'Á leiðinni', delayed: 'Frestað', done: 'Lokið' };
     const statusBadge = { new: 'badge-new', accepted: 'badge-accepted', onway: 'badge-onway', delayed: 'badge-delayed', done: 'badge-done' };
@@ -2370,6 +2612,7 @@
         <div class="job-header">
           <div>
             <div class="job-title">${job.jobType === 'annad-type' ? `<span class="annad-tag">${job.jobTypeLabel}</span>` : (job.jobTypeLabel || '—')}</div>
+            ${futureDayLabel(job.date) ? `<div class="job-date-future">${futureDayLabel(job.date)}</div>` : ''}
             <div class="job-dates">
               <div class="job-date-line"><span class="job-date-label">Sent út</span> ${fmtDateTime(job.createdAt)}</div>
               ${job.status === 'done' && job.completedAt ? `<div class="job-date-line"><span class="job-date-label job-date-done">Klárað</span> ${fmtDateTime(job.completedAt)}</div>` : ''}
@@ -2604,10 +2847,12 @@
   // ── RENTAL LINKING LOGIC ──────────────────────────────────────────────────
   // When a gám job finishes with a gámanúmer, update the corresponding container
   // record(s) and produce a rental summary to display on the sheet.
-  // GAM_JOB_TYPES: rental clock attached. KAR job types are skipped entirely.
+  // GAM_JOB_TYPES: rental clock attached. KAR jobs dispatch to applyKarRentalLogic.
   const GAM_JOB_TYPES = ['sekja', 'losa', 'skipta', 'fara'];
+  const KAR_JOB_TYPES = ['taka-kar', 'losa-kar', 'skipta-kari', 'vantar-kar'];
 
   async function applyContainerRentalLogic(job, effectiveDate) {
+    if (KAR_JOB_TYPES.includes(job.jobType)) return applyKarRentalLogic(job, effectiveDate);
     if (!GAM_JOB_TYPES.includes(job.jobType)) return null;
     const now = new Date().toISOString();
     // The rental clock uses the date the work was actually done
@@ -2880,6 +3125,139 @@
       }
     }
     return { summaries, warnings, twinPending };
+  }
+
+  // Kar rental logic — same shape as gám but auto-creates missing kar records
+  // (kör start empty; a driver entering a new karnúmer registers the kar).
+  async function applyKarRentalLogic(job, effectiveDate) {
+    if (!KAR_JOB_TYPES.includes(job.jobType)) return null;
+    const now = new Date().toISOString();
+    const today = effectiveDate || job.workDate || now.split('T')[0];
+    const summaries = [];
+    const warnings = [];
+
+    const findOrCreate = async (num) => {
+      if (!num || num === 'Nei') return null;
+      const idStr = String(num).trim();
+      let k = appData.kars.find(x => String(x.id).trim().toLowerCase() === idStr.toLowerCase());
+      if (k) return k;
+      // Auto-create with sensible defaults (heima until placed)
+      const fresh = { _key: idStr, id: idStr, status: 'heima', company: '', where: '', contact: '', note: '', placedAt: null, efni: '', efniLabel: '', updatedAt: now };
+      await fsSetKar(fresh);
+      // Local mirror so subsequent picks in this call see it
+      appData.kars = [...appData.kars.filter(x => x._key !== fresh._key), fresh];
+      return fresh;
+    };
+
+    const startRental = (k) => ({
+      ...k, status: 'utleigu',
+      company: job.company || '', where: job.where || '',
+      placedAt: today,
+      efni: job.material || '', efniLabel: job.materialLabel || '',
+      updatedAt: now
+    });
+
+    const makeStartSummary = (k) => ({
+      type: 'start',
+      containerId: k.id,
+      company: job.company || '',
+      where: job.where || '',
+      placedAt: today,
+      efni: job.material || '',
+      efniLabel: job.materialLabel || '',
+      jobType: job.jobType
+    });
+
+    const endRental = (k) => {
+      const summary = (k.status === 'utleigu' && k.placedAt) ? {
+        containerId: k.id,
+        company: k.company || '',
+        where: k.where || '',
+        placedAt: k.placedAt,
+        returnedAt: today,
+        days: Math.max(0, Math.floor((new Date(today + 'T00:00:00') - new Date(k.placedAt + 'T00:00:00')) / 86400000)),
+        efni: k.efni || '',
+        efniLabel: k.efniLabel || '',
+        jobType: job.jobType
+      } : null;
+      const updated = { ...k, status: 'heima', company: '', where: '', placedAt: null, efni: '', efniLabel: '', updatedAt: now };
+      return { updated, summary };
+    };
+
+    const num = job.containerNumber;
+    switch (job.jobType) {
+      case 'vantar-kar': { // Kar sett út: clock starts
+        if (num && num !== 'Nei') {
+          const k = await findOrCreate(num);
+          if (k) {
+            await fsSetKar(startRental(k));
+            summaries.push(makeStartSummary(k));
+          }
+        }
+        break;
+      }
+      case 'taka-kar': { // Kar sótt: clock stops
+        if (num && num !== 'Nei') {
+          const k = await findOrCreate(num);
+          if (k) {
+            const { updated, summary } = endRental(k);
+            await fsSetKar(updated);
+            if (summary) summaries.push(summary);
+            else warnings.push(`Kar #${k.id} var ekki skráð sem útleigt þegar það var sótt — engin útleigusaga búin til`);
+          }
+        }
+        break;
+      }
+      case 'losa-kar': { // Sama kar, klukka stoppar + ný byrjar
+        if (num && num !== 'Nei') {
+          const k = await findOrCreate(num);
+          if (k) {
+            if (k.status === 'utleigu' && k.placedAt) {
+              const { summary } = endRental(k);
+              if (summary) summaries.push(summary);
+            }
+            const started = startRental(k);
+            await fsSetKar(started);
+            summaries.push(makeStartSummary(k));
+          }
+        }
+        break;
+      }
+      case 'skipta-kari': { // Skipta kari: tekið kemur heim, sett fer út
+        const tek = job.containerNumberTekinn;
+        const set = job.containerNumberSettur;
+        if (tek && set && tek === set && tek !== 'Nei') {
+          const k = await findOrCreate(tek);
+          if (k) {
+            if (k.status === 'utleigu' && k.placedAt) {
+              const { summary } = endRental(k);
+              if (summary) summaries.push(summary);
+            }
+            await fsSetKar(startRental(k));
+            summaries.push(makeStartSummary(k));
+          }
+        } else {
+          if (tek && tek !== 'Nei') {
+            const kT = await findOrCreate(tek);
+            if (kT) {
+              const { updated, summary } = endRental(kT);
+              await fsSetKar(updated);
+              if (summary) summaries.push(summary);
+              else warnings.push(`Kar #${kT.id} var ekki skráð sem útleigt þegar það var sótt — engin útleigusaga búin til`);
+            }
+          }
+          if (set && set !== 'Nei') {
+            const kS = await findOrCreate(set);
+            if (kS) {
+              await fsSetKar(startRental(kS));
+              summaries.push(makeStartSummary(kS));
+            }
+          }
+        }
+        break;
+      }
+    }
+    return { summaries, warnings, twinPending: [] };
   }
 
   window.completeJob = async function(id, isSkipta) {
