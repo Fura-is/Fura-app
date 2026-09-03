@@ -3257,6 +3257,36 @@
         break;
       }
     }
+    // Auka-kör — same rules as main: 'taka' = rental end, 'setja' = rental start
+    if (job.extraContainers && job.extraContainers.length > 0) {
+      for (const extra of job.extraContainers) {
+        const num = extra.number;
+        if (!num || num === 'Nei') continue;
+        const k = await findOrCreate(num);
+        if (!k) continue;
+        if (extra.action === 'taka') {
+          const kWithEfni = { ...k, efni: extra.efni || k.efni || '', efniLabel: extra.efniLabel || k.efniLabel || '' };
+          const { updated, summary } = endRental(kWithEfni);
+          await fsSetKar(updated);
+          if (summary) {
+            summary.fromExtra = true;
+            summary.addedBy = extra.addedBy || '';
+            summaries.push(summary);
+          } else {
+            warnings.push(`Aukakar #${k.id} var ekki skráð sem útleigt þegar það var sótt — engin útleigusaga búin til`);
+          }
+        } else if (extra.action === 'setja') {
+          const started = startRental(k);
+          await fsSetKar(started);
+          const startSum = makeStartSummary(k);
+          startSum.efni = extra.efni || started.efni;
+          startSum.efniLabel = extra.efniLabel || started.efniLabel;
+          startSum.fromExtra = true;
+          startSum.addedBy = extra.addedBy || '';
+          summaries.push(startSum);
+        }
+      }
+    }
     return { summaries, warnings, twinPending: [] };
   }
 
