@@ -259,6 +259,12 @@
     .extra-input-wrap input:focus { border-color: var(--rust); }
     .extra-remove { background: var(--mid); border: none; color: var(--ink); width: 36px; border-radius: 6px; font-size: 1.2rem; font-weight: 700; cursor: pointer; line-height: 1; padding: 0; }
     .extra-remove:hover { background: var(--red); color: #fff; }
+    .kar-input-group { display: inline-flex; align-items: center; gap: 0.35rem; background: var(--white); border: 1.5px solid var(--mid); border-radius: 8px; padding: 0.4rem 0.6rem; }
+    .kar-input-group input[type="tel"] { border: none; outline: none; background: transparent; text-align: center; font-size: 1.35rem; font-weight: 700; color: var(--ink); padding: 0.2rem 0; -moz-appearance: textfield; }
+    .kar-input-group input[type="tel"]::-webkit-outer-spin-button, .kar-input-group input[type="tel"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .kar-input-group input[id$="-a"] { width: 2.4em; }
+    .kar-input-group input[id$="-b"] { width: 3.2em; }
+    .kar-dash { font-size: 1.5rem; font-weight: 700; color: var(--muted); user-select: none; }
     .nei-btn { background: transparent; border: 1.5px solid var(--mid); color: var(--ink); padding: 0.4rem 1.1rem; border-radius: 7px; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: all 0.15s; }
     .nei-btn:hover { background: var(--rust); border-color: var(--rust); color: #fff; }
     .status-actions { margin-top: 1rem; }
@@ -581,18 +587,38 @@
     );
   }
 
-  // Kar-number auto-dash: strips existing dashes and re-inserts after 2 chars.
-  // XX-XXX pattern; typing beyond 5 total digits just gets ignored on insert.
-  window.formatKar = function(el) {
-    let v = el.value.replace(/-/g, '');
-    if (v.length > 5) v = v.slice(0, 5);
-    if (v.length > 2) v = v.slice(0, 2) + '-' + v.slice(2);
-    if (el.value !== v) {
-      el.value = v;
-      // Keep cursor at end so auto-insert doesn't feel jumpy
-      const pos = v.length;
-      try { el.setSelectionRange(pos, pos); } catch (_) {}
-    }
+  // Kar-number two-part input: bandstrik alltaf sýnilegt, driver slær bara inn tölurnar
+  // (2 vinstra megin, 3 hægra megin — XX-XXX form eins og 26-118).
+  window.karInputHtml = function(id, initial) {
+    initial = String(initial || '');
+    let left = '', right = '';
+    if (initial === 'Nei') { left = ''; right = ''; }
+    else if (initial.includes('-')) { [left, right] = initial.split('-'); }
+    else { left = initial; }
+    left = (left || '').replace(/\D/g, '').slice(0, 2);
+    right = (right || '').replace(/\D/g, '').slice(0, 3);
+    return `<div class="kar-input-group">
+      <input type="tel" id="${id}-a" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="26" value="${left}" oninput="karPartInput('${id}')" onkeydown="karPartKeydown(event,'${id}')" />
+      <span class="kar-dash">-</span>
+      <input type="tel" id="${id}-b" maxlength="3" inputmode="numeric" pattern="[0-9]*" placeholder="118" value="${right}" oninput="karPartInput('${id}')" onkeydown="karPartKeydown(event,'${id}')" />
+      <input type="hidden" id="${id}" value="${initial === 'Nei' ? 'Nei' : (left + (right ? '-' + right : ''))}" />
+    </div>`;
+  };
+  window.karPartInput = function(id) {
+    const a = document.getElementById(id + '-a');
+    const b = document.getElementById(id + '-b');
+    const hid = document.getElementById(id);
+    if (!a || !b || !hid) return;
+    a.value = a.value.replace(/\D/g, '').slice(0, 2);
+    b.value = b.value.replace(/\D/g, '').slice(0, 3);
+    hid.value = (a.value || b.value) ? (a.value + (b.value ? '-' + b.value : '')) : '';
+    if (document.activeElement === a && a.value.length === 2) b.focus();
+  };
+  window.karPartKeydown = function(ev, id) {
+    if (ev.key !== 'Backspace') return;
+    const a = document.getElementById(id + '-a');
+    const b = document.getElementById(id + '-b');
+    if (document.activeElement === b && !b.value && a) { a.focus(); ev.preventDefault(); }
   };
 
   function futureDayLabel(iso) {
@@ -745,13 +771,11 @@
       const neiHintSettur = isKar ? `<div class="nei-hint">Ekkert númer? <button type="button" class="nei-btn" onclick="markNei('container-settur-${job.id}')">Nei</button></div>` : '';
       // Auka-gámar/kör — driver can add unexpected units on-site
       const extras = _extrasMap[job.id] || [];
-      const extraPh = isKar ? '26-118' : 'Sláðu inn gámanúmer...';
-      const extraAttrs = isKar ? ' inputmode="numeric" maxlength="6" oninput="formatKar(this)"' : '';
       const extrasHtml = extras.map(e => `
         <div class="extra-row">
           <div class="extra-label">${extraRowLabel(e)}</div>
           <div class="extra-input-wrap">
-            <input type="text" id="extra-num-${job.id}-${e.key}" placeholder="${extraPh}" value="${e.number || ''}"${extraAttrs} />
+            ${isKar ? karInputHtml(`extra-num-${job.id}-${e.key}`, e.number) : `<input type="text" id="extra-num-${job.id}-${e.key}" placeholder="Sláðu inn gámanúmer..." value="${e.number || ''}" />`}
             <button class="extra-remove" onclick="removeExtra('${job.id}', ${e.key})" aria-label="Fjarlægja">×</button>
           </div>
         </div>
@@ -767,11 +791,11 @@
         actionBlock = `
           <div class="container-input-wrap">
             <label>${tekinnLabel}</label>
-            <input type="text" id="container-tekinn-${job.id}" class="container-full-input" placeholder="${isKar ? '26-118' : 'Sláðu inn númer...'}" value="${job.containerNumberTekinn || ''}"${isKar ? ' inputmode="numeric" maxlength="6" oninput="formatKar(this)"' : ''} />
+            ${isKar ? karInputHtml(`container-tekinn-${job.id}`, job.containerNumberTekinn) : `<input type="text" id="container-tekinn-${job.id}" class="container-full-input" placeholder="Sláðu inn númer..." value="${job.containerNumberTekinn || ''}" />`}
             ${neiHintTekinn}
             <label style="margin-top:0.5rem;display:block;">${setturLabel}</label>
             <div class="container-row" style="margin-top:0.4rem;">
-              <input type="text" id="container-settur-${job.id}" placeholder="${isKar ? '26-118' : 'Sláðu inn númer...'}" value="${job.containerNumberSettur || ''}"${isKar ? ' inputmode="numeric" maxlength="6" oninput="formatKar(this)"' : ''} />
+              ${isKar ? karInputHtml(`container-settur-${job.id}`, job.containerNumberSettur) : `<input type="text" id="container-settur-${job.id}" placeholder="Sláðu inn númer..." value="${job.containerNumberSettur || ''}" />`}
             </div>
             ${neiHintSettur}
             ${extrasHtml}
@@ -788,7 +812,7 @@
           <div class="container-input-wrap">
             <label>${singleLabel}</label>
             <div class="container-row">
-              <input type="text" id="container-${job.id}" placeholder="${isKar ? '26-118' : 'Sláðu inn númer...'}" value="${job.containerNumber || ''}"${isKar ? ' inputmode="numeric" maxlength="6" oninput="formatKar(this)"' : ''} />
+              ${isKar ? karInputHtml(`container-${job.id}`, job.containerNumber) : `<input type="text" id="container-${job.id}" placeholder="Sláðu inn númer..." value="${job.containerNumber || ''}" />`}
             </div>
             ${neiHint}
             ${extrasHtml}
@@ -884,7 +908,14 @@
 
   window.markNei = function(inputId) {
     const el = document.getElementById(inputId);
-    if (el) { el.value = 'Nei'; el.focus(); el.blur(); }
+    if (!el) return;
+    el.value = 'Nei';
+    // Kar two-part inputs: clear visible fields so 'Nei' state is visible
+    const a = document.getElementById(inputId + '-a');
+    const b = document.getElementById(inputId + '-b');
+    if (a) a.value = '';
+    if (b) b.value = '';
+    try { el.focus(); el.blur(); } catch (_) {}
   };
 
   // ── RENTAL LINKING (mirrors director.html logic) ──────────────────────────
