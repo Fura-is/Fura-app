@@ -1818,7 +1818,7 @@
       const actions = twinUnresolved
         ? `<div class="rental-saved" style="color:#8a5a2b;">Veldu tvíburagám hér að ofan áður en fært er í gámaskjal</div>`
         : anyNotSaved
-        ? `<div class="rental-actions"><button class="btn btn-green btn-sm" onclick="rentalVista('${job.id}')">📋 Færa í gámaskjal</button></div>`
+        ? `<div class="rental-actions"><button class="btn btn-green btn-sm" onclick="rentalVista('${job.id}')">📋 Færa í gámaskjal og geymslu</button></div>`
         : `<div class="rental-saved">✓ Fært í gámaskjal — sjá Gámar</div>`;
       html += `<div class="rental-summary"><div class="rental-summary-title">Útleigusaga</div>${items}${actions}</div>`;
     }
@@ -1860,14 +1860,17 @@
       if (!ok) return;
     }
     // Merge in any missing SETJA summaries (old jobs) so the whole movement
-    // lands in gámaskjal in one click.
+    // lands in gámaskjal in one click. Also archive in the same write so
+    // director gets rid of the beiðni in one action.
     const merged = [...(job.rentalSummaries || []), ...backfillStartSummaries(job)];
     const updated = {
       ...job,
-      rentalSummaries: merged.map(s => ({ ...s, inBillingPanel: true, jobId }))
+      rentalSummaries: merged.map(s => ({ ...s, inBillingPanel: true, jobId })),
+      status: 'archived',
+      archivedAt: new Date().toISOString()
     };
     await fsSetJob(updated);
-    showToast(hasDirty ? '⚠ Fært — en gámaskráning ekki uppfærð' : 'Fært í gámaskjal ✓');
+    showToast(hasDirty ? '⚠ Fært — en gámaskráning ekki uppfærð' : 'Fært í gámaskjal og geymslu ✓');
   };
 
   window.markBillingDone = async function(jobId, containerId, placedAt) {
@@ -2692,7 +2695,7 @@
           <button class="btn btn-outline btn-sm" onclick="printJob('${job.id}')">🖨 Prenta</button>
           ${job.status === 'delayed' ? `<button class="btn btn-rust btn-sm" onclick="resumeDelayedJob('${job.id}')">▶ Setja verkefni af stað</button>` : ''}
           ${(job.status !== 'done' && job.status !== 'archived' && job.status !== 'draft' && _completingJobId !== job.id) ? `<button class="btn btn-green btn-sm" onclick="showCompleteForm('${job.id}')">✓ Klára núna</button>` : ''}
-          ${job.status === 'done' ? `<button class="btn btn-ink btn-sm" onclick="reopenJob('${job.id}')">Opna aftur</button><button class="btn btn-outline btn-sm" onclick="archiveJob('${job.id}')" style="border-color:var(--muted);color:var(--muted);">🗄 Færa í geymslu</button>` : ''}
+          ${job.status === 'done' ? `<button class="btn btn-ink btn-sm" onclick="reopenJob('${job.id}')">Opna aftur</button>${(!job.rentalSummaries || !job.rentalSummaries.some(s => !s.inBillingPanel)) ? `<button class="btn btn-outline btn-sm" onclick="archiveJob('${job.id}')" style="border-color:var(--muted);color:var(--muted);">🗄 Færa í geymslu</button>` : ''}` : ''}
           <button class="btn btn-red btn-sm" onclick="deleteJob('${job.id}')">Eyða</button>
         </div>
       </div>`;
