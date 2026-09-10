@@ -650,6 +650,7 @@
           <span class="geymsla-search-icon">🔍</span>
           <input type="text" id="kor-search" placeholder="Leita eftir karnúmeri, fyrirtæki, staðsetningu eða efni..." oninput="renderKor()" />
         </div>
+        <button class="btn btn-rust btn-sm" onclick="openKarForm()">+ Bæta við kari</button>
       </div>
       <div id="kor-summary" class="utleiga-summary"></div>
       <div class="utleiga-layout" id="kor-layout">
@@ -766,6 +767,64 @@
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeContainerForm()">Hætta við</button>
       <button class="btn btn-rust" onclick="saveContainer()">Vista</button>
+    </div>
+  </div>
+</div>
+
+<!-- Kar add/edit modal (simpler: no size/sérgerð, XX-XXX format) -->
+<div class="modal-overlay" id="kar-modal" style="display:none;" onclick="if(event.target===this)closeKarForm()">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-title" id="kar-modal-title">+ Bæta við kari</div>
+    <div class="container-modal-body">
+      <div class="form-group">
+        <label>Karnúmer <small style="color:var(--muted);font-weight:400;">— XX-XXX (t.d. 26-118)</small></label>
+        <input type="text" id="km-id" placeholder="26-118" maxlength="6" inputmode="numeric" style="font-size:1.15rem;font-weight:700;letter-spacing:0.03em;" oninput="karModalFormat(this)" />
+      </div>
+      <div class="form-group">
+        <label>Staða</label>
+        <div class="container-status-pick" id="km-status-group">
+          <button type="button" class="option-btn" onclick="kmPickStatus(this, 'heima')">Heima</button>
+          <button type="button" class="option-btn" onclick="kmPickStatus(this, 'utleigu')">Úti</button>
+        </div>
+      </div>
+      <div id="km-utleigu-fields" style="display:none;">
+        <div class="form-group">
+          <label>Fyrirtæki</label>
+          <input type="text" id="km-company" placeholder="t.d. Marel" />
+        </div>
+        <div class="container-modal-row">
+          <div class="form-group">
+            <label>Staðsetning</label>
+            <input type="text" id="km-where" placeholder="t.d. Garðabær" />
+          </div>
+          <div class="form-group">
+            <label>Sett þann</label>
+            <input type="date" id="km-placed" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Efni</label>
+          <div class="option-group" id="km-efni-group">
+            <button type="button" class="option-btn" onclick="kmPick('km-efni-group', this, '')">Ekki skráð</button>
+            <button type="button" class="option-btn" onclick="kmPick('km-efni-group', this, 'jarn')">Járn</button>
+            <button type="button" class="option-btn" onclick="kmPick('km-efni-group', this, 'timbur')">Timbur</button>
+            <button type="button" class="option-btn" onclick="kmPick('km-efni-group', this, 'annad')">Annað</button>
+          </div>
+          <div class="other-input" id="km-efni-other-wrap"><input type="text" id="km-efni-other" placeholder="Lýstu efninu..." /></div>
+        </div>
+        <div class="form-group">
+          <label>Tengill (valkvætt)</label>
+          <input type="text" id="km-contact" placeholder="t.d. Gunnar Garðarsson" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Athugasemd (valkvætt)</label>
+        <textarea id="km-note" rows="2" placeholder="Annað sem skiptir máli..."></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeKarForm()">Hætta við</button>
+      <button class="btn btn-rust" onclick="saveKar()">Vista</button>
     </div>
   </div>
 </div>
@@ -1267,6 +1326,7 @@
         </div>
         ${row2}
         <div class="container-actions">
+          <button class="btn btn-outline btn-sm" onclick="editKar('${escHtml(k._key).replace(/'/g, "\\'")}')">Breyta</button>
           <button class="btn btn-red btn-sm" onclick="deleteKar('${escHtml(k._key).replace(/'/g, "\\'")}')">Eyða</button>
         </div>
       </div>`;
@@ -1302,7 +1362,7 @@
 
     if (list.length === 0) {
       listEl.innerHTML = total === 0
-        ? `<div class="empty-state"><div class="icon">🛢</div>Engin kör í kerfinu enn<br><small style="font-size:0.8rem;margin-top:0.5rem;display:block;">Kar bætist við sjálfvirkt þegar bílstjóri klárar kar-beiðni með númeri (t.d. 26-118)</small></div>`
+        ? `<div class="empty-state"><div class="icon">🛢</div>Engin kör í kerfinu enn<br><small style="font-size:0.8rem;margin-top:0.5rem;display:block;">Smelltu á <strong>+ Bæta við kari</strong> til að byrja, eða þegar bílstjóri klárar kar-beiðni bætist það við sjálfvirkt</small></div>`
         : `<div class="empty-state"><div class="icon">🔍</div>Engin kör fundust</div>`;
     } else {
       listEl.innerHTML = list.map(karCard).join('');
@@ -1365,7 +1425,8 @@
     const items = [];
     for (const job of appData.jobs) {
       if (!job.rentalSummaries) continue;
-      const dirtyWarning = (job.rentalWarnings || []).some(w => w.includes('inniheldur texta'));
+      // Only gám-jobs can be "dirty" — kar dashes are legitimate format
+      const dirtyWarning = !isKarJobType(job.jobType) && (job.rentalWarnings || []).some(w => w.includes('inniheldur texta'));
       for (const s of job.rentalSummaries) {
         if (s.inBillingPanel) items.push({ ...s, jobId: job.id, jobDate: job.date, jobType: s.jobType || job.jobType, dirtyWarning });
       }
@@ -1693,6 +1754,107 @@
     showToast('Gámur fjarlægður');
   };
 
+  // ── KAR ADD/EDIT MODAL ────────────────────────────────────────────────────
+  let _editingKarId = null;
+  window.karModalFormat = function(el) {
+    let v = el.value.replace(/\D/g, '');
+    if (v.length > 5) v = v.slice(0, 5);
+    if (v.length > 2) v = v.slice(0, 2) + '-' + v.slice(2);
+    el.value = v;
+  };
+  window.kmPick = function(groupId, btn, value) {
+    document.querySelectorAll(`#${groupId} .option-btn`).forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    btn.dataset.value = value;
+    if (groupId === 'km-efni-group') {
+      document.getElementById('km-efni-other-wrap').style.display = value === 'annad' ? 'block' : 'none';
+    }
+  };
+  window.kmPickStatus = function(btn, value) {
+    document.querySelectorAll('#km-status-group .option-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    btn.dataset.value = value;
+    document.getElementById('km-utleigu-fields').style.display = value === 'utleigu' ? 'block' : 'none';
+  };
+  function kmGetSelected(groupId) {
+    const b = document.querySelector(`#${groupId} .option-btn.selected`);
+    return b ? b.dataset.value : '';
+  }
+  function kmResetForm() {
+    ['km-id','km-company','km-where','km-contact','km-note','km-efni-other'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    document.getElementById('km-placed').value = todayISO();
+    document.querySelectorAll('#kar-modal .option-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById('km-utleigu-fields').style.display = 'none';
+    document.getElementById('km-efni-other-wrap').style.display = 'none';
+  }
+  window.openKarForm = function() {
+    _editingKarId = null;
+    kmResetForm();
+    document.getElementById('kar-modal-title').textContent = '+ Bæta við kari';
+    document.getElementById('km-id').disabled = false;
+    const heimaBtn = document.querySelector('#km-status-group .option-btn');
+    if (heimaBtn) kmPickStatus(heimaBtn, 'heima');
+    document.getElementById('kar-modal').style.display = 'flex';
+  };
+  window.editKar = function(key) {
+    const k = appData.kars.find(x => x._key === key);
+    if (!k) return;
+    _editingKarId = key;
+    kmResetForm();
+    document.getElementById('kar-modal-title').textContent = 'Breyta kari #' + k.id;
+    document.getElementById('km-id').value = k.id || '';
+    document.getElementById('km-id').disabled = true; // number is the key
+    document.getElementById('km-company').value = k.company || '';
+    document.getElementById('km-where').value = k.where || '';
+    document.getElementById('km-contact').value = k.contact || '';
+    document.getElementById('km-note').value = k.note || '';
+    document.getElementById('km-placed').value = k.placedAt || todayISO();
+    if (k.status === 'utleigu') {
+      const utiBtn = document.querySelectorAll('#km-status-group .option-btn')[1];
+      if (utiBtn) kmPickStatus(utiBtn, 'utleigu');
+    } else {
+      const heimaBtn = document.querySelector('#km-status-group .option-btn');
+      if (heimaBtn) kmPickStatus(heimaBtn, 'heima');
+    }
+    if (k.efni) {
+      const efniBtn = [...document.querySelectorAll('#km-efni-group .option-btn')].find(b => (b.textContent === 'Járn' && k.efni === 'jarn') || (b.textContent === 'Timbur' && k.efni === 'timbur') || (b.textContent === 'Annað' && k.efni === 'annad'));
+      if (efniBtn) kmPick('km-efni-group', efniBtn, k.efni);
+      if (k.efni === 'annad') document.getElementById('km-efni-other').value = k.efniLabel || '';
+    }
+    document.getElementById('kar-modal').style.display = 'flex';
+  };
+  window.closeKarForm = function() {
+    document.getElementById('kar-modal').style.display = 'none';
+  };
+  window.saveKar = async function() {
+    const id = document.getElementById('km-id').value.trim();
+    if (!id) { showToast('Sláðu inn karnúmer'); return; }
+    if (!/^\d{1,2}-\d{1,3}$/.test(id)) { showToast('Rangt format — á að vera XX-XXX (t.d. 26-118)'); return; }
+    if (!_editingKarId && appData.kars.some(k => k.id === id)) {
+      showToast(`Kar #${id} er þegar til`); return;
+    }
+    const status = kmGetSelected('km-status-group') || 'heima';
+    const efni = kmGetSelected('km-efni-group') || '';
+    const efniLabel = efni === 'annad' ? document.getElementById('km-efni-other').value.trim() : '';
+    const now = new Date().toISOString();
+    const kar = {
+      _key: id,
+      id,
+      status,
+      company: status === 'utleigu' ? document.getElementById('km-company').value.trim() : '',
+      where: status === 'utleigu' ? document.getElementById('km-where').value.trim() : '',
+      contact: status === 'utleigu' ? document.getElementById('km-contact').value.trim() : '',
+      placedAt: status === 'utleigu' ? (document.getElementById('km-placed').value || todayISO()) : null,
+      efni: status === 'utleigu' ? efni : '',
+      efniLabel: status === 'utleigu' && efni === 'annad' ? efniLabel : '',
+      note: document.getElementById('km-note').value.trim(),
+      updatedAt: now
+    };
+    await fsSetKar(kar);
+    showToast(_editingKarId ? 'Kar uppfært ✓' : 'Kar skráð ✓');
+    closeKarForm();
+  };
+
   // ── EXCEL IMPORT ──────────────────────────────────────────────────────────
 
   let _ciRows = []; // parsed rows for preview/edit
@@ -1799,27 +1961,32 @@
         const efniText = s.efni === 'annad' ? (s.efniLabel || 'Annað') : (efniLabels[s.efni] || '');
         const wherePart = s.company && s.where ? `${s.company} (${s.where})` : (s.company || s.where || '');
         const jobTypeText = jobTypeRentalLabel(s.jobType || job.jobType);
+        const uLbl = unitLabel(s.jobType || job.jobType);
+        const uEmoji = isKarJobType(s.jobType || job.jobType) ? '🛢' : '🚛';
         if (s.type === 'start') {
           return `<div class="rental-summary-line">
-            <div><strong>Gámur #${escHtml(s.containerId)}</strong> fór út til <strong>${escHtml(wherePart)}</strong></div>
+            <div><strong>${uLbl} #${escHtml(s.containerId)}</strong> fór út til <strong>${escHtml(wherePart)}</strong></div>
             <div class="rental-dates">Settur þann ${placedFmt}${efniText ? ` · Efni: <strong>${escHtml(efniText)}</strong>` : ''}</div>
-            ${jobTypeText ? `<div class="rental-jobtype-line">🚛 <strong>${jobTypeText}</strong></div>` : ''}
+            ${jobTypeText ? `<div class="rental-jobtype-line">${uEmoji} <strong>${jobTypeText}</strong></div>` : ''}
           </div>`;
         }
         const returnedFmt = fmtIcelandicDate(s.returnedAt);
         return `<div class="rental-summary-line">
-          <div><strong>Gámur #${escHtml(s.containerId)}</strong> var hjá <strong>${escHtml(wherePart)}</strong> í <strong>${daysLabel(s.days)}</strong></div>
+          <div><strong>${uLbl} #${escHtml(s.containerId)}</strong> var hjá <strong>${escHtml(wherePart)}</strong> í <strong>${daysLabel(s.days)}</strong></div>
           <div class="rental-dates">${placedFmt} → ${returnedFmt}${efniText ? ` · Efni: <strong>${escHtml(efniText)}</strong>` : ''}</div>
-          ${jobTypeText ? `<div class="rental-jobtype-line">🚛 <strong>${jobTypeText}</strong></div>` : ''}
+          ${jobTypeText ? `<div class="rental-jobtype-line">${uEmoji} <strong>${jobTypeText}</strong></div>` : ''}
         </div>`;
       }).join('');
       const anyNotSaved = summaries.some(s => !s.inBillingPanel);
       const twinUnresolved = job.twinPending && job.twinPending.length;
+      const isKar = isKarJobType(job.jobType);
+      const logName = isKar ? 'karskjal' : 'gámaskjal';
+      const registerName = isKar ? 'Kör' : 'Gámar';
       const actions = twinUnresolved
-        ? `<div class="rental-saved" style="color:#8a5a2b;">Veldu tvíburagám hér að ofan áður en fært er í gámaskjal</div>`
+        ? `<div class="rental-saved" style="color:#8a5a2b;">Veldu tvíburagám hér að ofan áður en fært er í ${logName}</div>`
         : anyNotSaved
-        ? `<div class="rental-actions"><button class="btn btn-green btn-sm" onclick="rentalVista('${job.id}')">📋 Færa í gámaskjal og geymslu</button></div>`
-        : `<div class="rental-saved">✓ Fært í gámaskjal — sjá Gámar</div>`;
+        ? `<div class="rental-actions"><button class="btn btn-green btn-sm" onclick="rentalVista('${job.id}')">📋 Færa í ${logName} og geymslu</button></div>`
+        : `<div class="rental-saved">✓ Fært í ${logName} — sjá ${registerName}</div>`;
       html += `<div class="rental-summary"><div class="rental-summary-title">Útleigusaga</div>${items}${actions}</div>`;
     }
     return html;
@@ -1870,7 +2037,9 @@
       archivedAt: new Date().toISOString()
     };
     await fsSetJob(updated);
-    showToast(hasDirty ? '⚠ Fært — en gámaskráning ekki uppfærð' : 'Fært í gámaskjal og geymslu ✓');
+    const logName = isKarJobType(job.jobType) ? 'karskjal' : 'gámaskjal';
+    const regName = isKarJobType(job.jobType) ? 'karskráning' : 'gámaskráning';
+    showToast(hasDirty ? `⚠ Fært — en ${regName} ekki uppfærð` : `Fært í ${logName} og geymslu ✓`);
   };
 
   window.markBillingDone = async function(jobId, containerId, placedAt) {
@@ -2644,11 +2813,19 @@
           const k = ['taka-kar','losa-kar','skipta-kari','vantar-kar'].includes(job.jobType);
           const unitShort = k ? 'Kar' : 'Gám';
           const unitLong = k ? 'Karnúmer' : 'Gámanúmer';
-          const isDirty = (n) => n && n !== 'Nei' && !/^\d+$/.test(n) && !appData.containers.some(c => c.id === n);
+          // Kar-numbers legitimately contain a dash (XX-XXX); look in kars collection
+          const isDirty = (n) => {
+            if (!n || n === 'Nei') return false;
+            if (k) return !/^\d{1,2}-\d{1,3}$/.test(n) && !appData.kars.some(x => x.id === n);
+            return !/^\d+$/.test(n) && !appData.containers.some(c => c.id === n);
+          };
+          const dirtyMsg = k
+            ? `⚠ Rangt karnúmer — á að vera XX-XXX (t.d. 26-118)`
+            : `⚠ Inniheldur texta — ekki tengt raunverulegum gám`;
           const numBox = (label, num, dirty) => `<div class="gam-num-box${dirty ? ' gam-num-warn' : ''}">
             <div class="gam-num-label">${label}</div>
             <div class="gam-num-value">${escHtml(num || '—')}</div>
-            ${dirty ? `<div class="gam-num-dirty-tag">⚠ Inniheldur texta — ekki tengt raunverulegum gám</div>` : ''}
+            ${dirty ? `<div class="gam-num-dirty-tag">${dirtyMsg}</div>` : ''}
           </div>`;
           // Label the single numBox based on jobType so "Gám tekinn" / "Gám settur" is clear
           const settLabel = k ? 'Kar sett' : 'Gám settur';
@@ -2676,7 +2853,7 @@
                 <div class="gam-num-label">${actionLbl}</div>
                 <div class="gam-num-value">${escHtml(e.number || '—')}</div>
                 ${e.addedBy ? `<div class="gam-num-extra-by">${escHtml(e.addedBy)} bætti við</div>` : ''}
-                ${dirty ? `<div class="gam-num-dirty-tag">⚠ Inniheldur texta — ekki tengt raunverulegum gám</div>` : ''}
+                ${dirty ? `<div class="gam-num-dirty-tag">${dirtyMsg}</div>` : ''}
               </div>`;
             }
           }
@@ -2853,6 +3030,11 @@
   // GAM_JOB_TYPES: rental clock attached. KAR jobs dispatch to applyKarRentalLogic.
   const GAM_JOB_TYPES = ['sekja', 'losa', 'skipta', 'fara'];
   const KAR_JOB_TYPES = ['taka-kar', 'losa-kar', 'skipta-kari', 'vantar-kar'];
+  // Helpers for kar-vs-gám terminology — used in labels, warnings, dialogs
+  const isKarJobType = jt => KAR_JOB_TYPES.includes(jt);
+  const unitLabel = jt => isKarJobType(jt) ? 'Kar' : 'Gámur';
+  const unitLabelLower = jt => isKarJobType(jt) ? 'kar' : 'gám';
+  const unitRegister = jt => isKarJobType(jt) ? 'Kör alls' : 'Gámar alls';
 
   async function applyContainerRentalLogic(job, effectiveDate) {
     if (KAR_JOB_TYPES.includes(job.jobType)) return applyKarRentalLogic(job, effectiveDate);
