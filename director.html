@@ -241,6 +241,30 @@
     .send-row .btn { flex: 1; }
 
     .job-card { background: var(--white); border-radius: 10px; padding: 1.25rem; margin-bottom: 0.75rem; border-left: 4px solid var(--mid); box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    /* Priority form toggle */
+    .priority-toggle-wrap { padding: 0; }
+    .priority-toggle { display: flex; align-items: flex-start; gap: 0.7rem; padding: 0.85rem 1rem; border: 2px solid var(--mid); border-radius: 10px; cursor: pointer; background: var(--warm); transition: all 0.15s; }
+    .priority-toggle:has(input:checked) { border-color: var(--red); background: #fee5e0; }
+    .priority-toggle input[type="checkbox"] { margin-top: 0.15rem; width: 1.15rem; height: 1.15rem; accent-color: var(--red); }
+    .priority-toggle-body { display: flex; flex-direction: column; gap: 0.15rem; }
+    .priority-toggle-title { font-weight: 800; font-size: 0.95rem; color: var(--ink); }
+    .priority-toggle:has(input:checked) .priority-toggle-title { color: var(--red); }
+    .priority-toggle-hint { font-size: 0.78rem; color: var(--muted); line-height: 1.4; }
+    [data-theme="dark"] .priority-toggle:has(input:checked) { background: #4a2a28; }
+    /* Priority visual on job cards */
+    @keyframes priorityPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(192,57,43,0.55), 0 1px 4px rgba(0,0,0,0.06); }
+      50%      { box-shadow: 0 0 0 6px rgba(192,57,43,0), 0 1px 4px rgba(0,0,0,0.06); }
+    }
+    .job-card.priority { border: 2px solid var(--red); border-left: 6px solid var(--red); background: #fef1ee; animation: priorityPulse 2s ease-in-out infinite; }
+    [data-theme="dark"] .job-card.priority { background: #3a2523; }
+    .job-card.priority .job-title { color: var(--red); }
+    .priority-badge { display: inline-flex; align-items: center; gap: 0.3rem; background: var(--red); color: #fff; font-size: 0.72rem; font-weight: 900; padding: 0.28rem 0.65rem; border-radius: 5px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.6rem; }
+    /* Priority section heading */
+    .priority-section-heading { display: flex; align-items: center; gap: 0.5rem; font-size: 0.78rem; font-weight: 900; color: var(--red); text-transform: uppercase; letter-spacing: 0.1em; margin: 0.5rem 0 0.6rem 0; padding-bottom: 0.4rem; border-bottom: 2px solid var(--red); }
+    .priority-section-heading .count { background: var(--red); color: #fff; font-size: 0.7rem; padding: 0.1rem 0.5rem; border-radius: 10px; }
+    .normal-section-heading { font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin: 1.25rem 0 0.6rem 0; padding-bottom: 0.35rem; border-bottom: 1px solid var(--mid); }
+    .priority-nav-badge { display: inline-flex; align-items: center; justify-content: center; background: var(--red); color: #fff; font-size: 0.72rem; font-weight: 900; min-width: 1.15rem; height: 1.15rem; padding: 0 0.4rem; border-radius: 999px; margin-left: 0.35rem; vertical-align: middle; box-shadow: 0 0 0 2px rgba(192,57,43,0.35); animation: priorityPulse 2s ease-in-out infinite; }
     .job-row { display: grid; grid-template-columns: 65px 1fr; gap: 0.6rem; align-items: start; margin-bottom: 0.75rem; }
     .job-row-side { padding-top: 1.5rem; text-align: right; }
     .job-row-card { min-width: 0; }
@@ -560,6 +584,16 @@
         <div class="form-group">
           <label>Athugasemdir (valkvæmt)</label>
           <textarea id="job-notes"></textarea>
+        </div>
+
+        <div class="form-group priority-toggle-wrap">
+          <label class="priority-toggle">
+            <input type="checkbox" id="job-priority" />
+            <span class="priority-toggle-body">
+              <span class="priority-toggle-title">🚨 Merkja sem FORGANG</span>
+              <span class="priority-toggle-hint">Beiðnin birtist efst hjá bílstjórum, með áberandi rauðu merki. Notaðu bara þegar bráð þörf er.</span>
+            </span>
+          </label>
         </div>
 
         <div class="form-group">
@@ -933,6 +967,7 @@
     if (!_loggedIn) return;
     updateUtleigaCount();
     updateKorCount();
+    updatePriorityBadge();
     const active = document.querySelector('.tab-panel.active');
     if (!active) return;
     if (active.id==='tab-jobs')    renderJobsList();
@@ -2434,6 +2469,7 @@
       driver, driverLabel: driver === 'all' ? 'Allir bílstjórar' : (approvedDriver ? approvedDriver.name : (driverLabelMap[driver] || driver)),
       notes: document.getElementById('job-notes').value.trim(),
       image: _jobImageData || null,
+      priority: document.getElementById('job-priority').checked,
       ...containerFields
     };
     if (extraContainersField !== undefined) out.extraContainers = extraContainersField;
@@ -2480,6 +2516,7 @@
 
   function clearForm() {
     ['job-company','job-where','job-phone','job-contact','job-notes','job-type-other','job-material-other','job-equipment-other','edit-gamanumer','edit-gamanumer-settur'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    document.getElementById('job-priority').checked = false;
     document.getElementById('job-date').value = todayISO();
     ['job-type-group','job-material-group','job-equipment-group','job-driver-group'].forEach(g =>
       document.querySelectorAll(`#${g} .option-btn`).forEach(b => b.classList.remove('selected'))
@@ -2499,6 +2536,7 @@
     setVal('job-date', job.date); setVal('job-company', job.company);
     setVal('job-where', job.where);
     setVal('job-phone', job.phone); setVal('job-contact', job.contact); setVal('job-notes', job.notes);
+    document.getElementById('job-priority').checked = !!job.priority;
     const restoreOption = (groupId, value, wrapId, inputId, label) => {
       document.querySelectorAll(`#${groupId} .option-btn`).forEach(b => { if (b.dataset.value === value) b.classList.add('selected'); });
       if (wrapId && ['annad','annad-type','annad-equip'].includes(value)) { document.getElementById(wrapId).style.display = 'block'; setVal(inputId, label); }
@@ -2757,9 +2795,37 @@
     const byNewest = (a, b) => (b.createdAt || '').localeCompare(a.createdAt || '');
     const active = d.jobs.filter(j => ['new','accepted','onway','delayed'].includes(j.status)).sort(byNewest);
     const done = d.jobs.filter(j => j.status === 'done').sort(byNewest);
-    // archived jobs are excluded from both lists (they live in Geymsla)
-    document.getElementById('active-jobs-list').innerHTML = active.length ? active.map(wrapJobRow).join('') : '<div class="empty-state"><div class="icon">📋</div>Engar virkar beiðnir</div>';
+    // Priority beiðnir alltaf efst — sérstakur hluti með áberandi heiti
+    const priorityActive = active.filter(j => j.priority);
+    const normalActive = active.filter(j => !j.priority);
+    let activeHtml = '';
+    if (priorityActive.length > 0) {
+      activeHtml += `<div class="priority-section-heading">🚨 Forgangur <span class="count">${priorityActive.length}</span></div>`;
+      activeHtml += priorityActive.map(wrapJobRow).join('');
+      if (normalActive.length > 0) {
+        activeHtml += `<div class="normal-section-heading">Aðrar beiðnir</div>`;
+      }
+    }
+    activeHtml += normalActive.map(wrapJobRow).join('');
+    if (active.length === 0) activeHtml = '<div class="empty-state"><div class="icon">📋</div>Engar virkar beiðnir</div>';
+    document.getElementById('active-jobs-list').innerHTML = activeHtml;
     document.getElementById('done-jobs-list').innerHTML = done.length ? done.map(wrapJobRow).join('') : '<div class="empty-state" style="padding:1rem 0;">Engar loknar beiðnir</div>';
+    updatePriorityBadge();
+  }
+
+  function updatePriorityBadge() {
+    // Red badge with count on "Beiðnir" tab when there are unfinished priority
+    const btn = document.querySelector('.tab-btn[onclick*="\'jobs\'"]');
+    if (!btn) return;
+    const count = appData.jobs.filter(j => j.priority && ['new','accepted','onway','delayed'].includes(j.status)).length;
+    const existing = btn.querySelector('.priority-nav-badge');
+    if (existing) existing.remove();
+    if (count > 0) {
+      const span = document.createElement('span');
+      span.className = 'priority-nav-badge';
+      span.textContent = count;
+      btn.appendChild(span);
+    }
   }
 
   function futureDayLabel(iso) {
@@ -2780,7 +2846,8 @@
     const driverTagClass = { new: 'driver-tag-waiting', accepted: 'driver-tag-accepted', onway: 'driver-tag-onway', delayed: 'driver-tag-delayed', done: 'driver-tag-done' };
     const driverTagText = { new: '⏳ Bíður svars', accepted: '✓ Samþykkt', onway: '🚛 Á leiðinni', delayed: '⏸ Frestað', done: '✓ Lokið' };
     return `
-      <div class="job-card status-${job.status}">
+      <div class="job-card status-${job.status}${job.priority ? ' priority' : ''}">
+        ${job.priority ? `<div class="priority-badge">🚨 Forgangur</div>` : ''}
         <div class="job-header">
           <div>
             <div class="job-title">${job.jobType === 'annad-type' ? `<span class="annad-tag">${job.jobTypeLabel}</span>` : (job.jobTypeLabel || '—')}</div>

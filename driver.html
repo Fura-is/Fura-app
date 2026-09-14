@@ -170,6 +170,42 @@
       box-shadow: 0 2px 10px rgba(0,0,0,0.07);
     }
     .job-card.status-new      { border-left-color: var(--red); }
+    /* PRIORITY visual — pulsating red glow + red "Forgangur" ribbon above card */
+    @keyframes priorityPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(192,57,43,0.65), 0 2px 10px rgba(0,0,0,0.07); }
+      50%      { box-shadow: 0 0 0 10px rgba(192,57,43,0), 0 2px 10px rgba(0,0,0,0.07); }
+    }
+    @keyframes priorityBadgePulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.85; transform: scale(1.03); }
+    }
+    .job-card.priority { border: 2px solid var(--red); border-left: 6px solid var(--red); background: #fef1ee; animation: priorityPulse 1.6s ease-in-out infinite; position: relative; }
+    [data-theme="dark"] .job-card.priority { background: #3a2523; }
+    .job-card.priority .job-title { color: var(--red); }
+    .priority-badge {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      background: var(--red); color: #fff;
+      font-size: 0.8rem; font-weight: 900;
+      padding: 0.35rem 0.75rem; border-radius: 6px;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      margin-bottom: 0.7rem;
+      animation: priorityBadgePulse 1.6s ease-in-out infinite;
+      box-shadow: 0 2px 6px rgba(192,57,43,0.5);
+    }
+    /* Section headings for driver priority list */
+    .priority-section-heading { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 900; color: var(--red); text-transform: uppercase; letter-spacing: 0.1em; margin: 0.5rem 0 0.7rem 0; padding-bottom: 0.4rem; border-bottom: 2px solid var(--red); }
+    .priority-section-heading .count { background: var(--red); color: #fff; font-size: 0.75rem; padding: 0.15rem 0.55rem; border-radius: 12px; }
+    .normal-section-heading { font-size: 0.8rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin: 1.4rem 0 0.6rem 0; padding-bottom: 0.35rem; border-bottom: 1px solid var(--mid); }
+    /* Red badge on Útköllun nav tab */
+    .priority-nav-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--red); color: #fff;
+      font-size: 0.72rem; font-weight: 900;
+      min-width: 1.2rem; height: 1.2rem; padding: 0 0.4rem;
+      border-radius: 999px; margin-left: 0.35rem; vertical-align: middle;
+      box-shadow: 0 0 0 2px rgba(192,57,43,0.35);
+      animation: priorityBadgePulse 1.6s ease-in-out infinite;
+    }
     .job-card.status-all      { border-left-color: var(--yellow); }
     .job-card.status-accepted { border-left-color: var(--yellow); }
     .job-card.status-onway    { border-left-color: #1a6bb5; }
@@ -675,9 +711,11 @@
     const byNewest = (a, b) => (b.createdAt || '').localeCompare(a.createdAt || '');
 
     // Útköllun — new jobs not yet accepted; oldest first so longest-waiting are at top
+    // Priority beiðnir birtast efst í sérflokki
     const byOldest = (a, b) => (a.createdAt || '').localeCompare(b.createdAt || '');
     const newJobs = getNewJobs(d).sort(byOldest);
     renderList('utkolun-list', newJobs, 'Útköllun', '🔔', 'Engar nýjar útköllur');
+    updatePriorityNavBadge(newJobs.filter(j => j.priority).length);
 
     // Í vinnslu — accepted, onway, or delayed
     const onwayJobs = d.jobs.filter(j =>
@@ -701,17 +739,42 @@
       el.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">${icon}</div><p>${emptyMsg}</p></div>`;
       return;
     }
-    el.innerHTML = jobs.map(j => {
+    // Split into priority and normal — priority alltaf efst með sérstöku heiti
+    const priority = jobs.filter(j => j.priority);
+    const normal = jobs.filter(j => !j.priority);
+    const renderRow = (j) => {
       const day = j.status === 'new' ? relativeDayLabel(j.createdAt) : '';
       return `<div class="job-row">
         <div class="job-row-side">${day ? `<div class="job-day-since">${day}</div>` : ''}</div>
         <div class="job-row-card">${jobCard(j)}</div>
       </div>`;
-    }).join('');
+    };
+    let html = '';
+    if (priority.length > 0) {
+      html += `<div class="priority-section-heading">🚨 Forgangur <span class="count">${priority.length}</span></div>`;
+      html += priority.map(renderRow).join('');
+      if (normal.length > 0) html += `<div class="normal-section-heading">Aðrar beiðnir</div>`;
+    }
+    html += normal.map(renderRow).join('');
+    el.innerHTML = html;
+  }
+
+  function updatePriorityNavBadge(count) {
+    const btn = document.getElementById('tab-utkolun');
+    if (!btn) return;
+    const existing = btn.querySelector('.priority-nav-badge');
+    if (existing) existing.remove();
+    if (count > 0) {
+      const span = document.createElement('span');
+      span.className = 'priority-nav-badge';
+      span.textContent = count;
+      btn.appendChild(span);
+    }
   }
 
   function jobCard(job) {
     const isAll = job.driver === 'all';
+    const isPriority = !!job.priority;
     const statusLabel = { new: isAll ? 'Opið' : 'Ný beiðni', accepted: 'Samþykkt', onway: 'Á leiðinni', delayed: 'Frestað', done: 'Lokið' };
     const statusBadgeClass = { new: isAll ? 'badge-all' : 'badge-new', accepted: 'badge-accepted', onway: 'badge-onway', delayed: 'badge-delayed', done: 'badge-done' };
     const cardClass = isAll ? 'status-all' : `status-${job.status}`;
@@ -859,7 +922,8 @@
 
     const cls = (val) => val ? 'job-detail-filled' : 'job-detail-empty';
     return `
-      <div class="job-card ${cardClass}">
+      <div class="job-card ${cardClass}${isPriority ? ' priority' : ''}">
+        ${isPriority ? `<div class="priority-badge">🚨 Forgangur</div>` : ''}
         <div style="margin-bottom:0.75rem;">
           <span class="recipient-tag ${recipientClass}">${recipientLabel}</span>
         </div>
