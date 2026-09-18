@@ -167,6 +167,21 @@
     .login-error { color: var(--red); font-size: 0.85rem; margin-top: 0.75rem; display: none; }
 
     .form-group { margin-bottom: 1rem; text-align: left; }
+    /* Autocomplete dropdown — reuses recent beiðnir combos */
+    .autocomplete-wrap { position: relative; }
+    .autocomplete-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 60; background: var(--white); border: 1.5px solid var(--mid); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); max-height: 320px; overflow-y: auto; }
+    .ac-option { display: flex; align-items: stretch; padding: 0; border-bottom: 1px solid var(--mid); cursor: pointer; transition: background 0.1s; }
+    .ac-option:last-child { border-bottom: none; }
+    .ac-option:hover, .ac-option.ac-active { background: var(--warm); }
+    .ac-option-body { flex: 1; padding: 0.6rem 0.75rem; min-width: 0; }
+    .ac-option-title { font-size: 0.95rem; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ac-option-sub { font-size: 0.78rem; color: var(--muted); margin-top: 0.15rem; line-height: 1.35; }
+    .ac-option-sub span { color: var(--ink); }
+    .ac-option-x { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; width: 1.75rem; color: var(--muted); font-size: 1rem; opacity: 0.5; border-left: 1px solid var(--mid); transition: all 0.15s; }
+    .ac-option-x:hover { opacity: 1; color: var(--red); background: #fee; }
+    .ac-empty { padding: 0.75rem; text-align: center; color: var(--muted); font-size: 0.85rem; }
+    [data-theme="dark"] .autocomplete-dropdown { background: var(--white); border-color: var(--mid); }
+    [data-theme="dark"] .ac-option-x:hover { background: #4a2a28; }
     .form-group label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--muted); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.08em; }
     .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.75rem 1rem; border: 1.5px solid var(--mid); border-radius: 6px; font-size: 1rem; color: var(--ink); background: var(--white); outline: none; transition: border-color 0.2s; }
     .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--rust); }
@@ -509,22 +524,34 @@
 
         <div class="form-group">
           <label>Fyrirtæki / Aðili</label>
-          <input type="text" id="job-company" />
+          <div class="autocomplete-wrap">
+            <input type="text" id="job-company" autocomplete="off" data-ac-field="company" />
+            <div class="autocomplete-dropdown" id="ac-dd-company" hidden></div>
+          </div>
         </div>
 
         <div class="form-group">
           <label>Staðsetning</label>
-          <input type="text" id="job-where" />
+          <div class="autocomplete-wrap">
+            <input type="text" id="job-where" autocomplete="off" data-ac-field="where" />
+            <div class="autocomplete-dropdown" id="ac-dd-where" hidden></div>
+          </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
             <label>Sími</label>
-            <input type="tel" id="job-phone" />
+            <div class="autocomplete-wrap">
+              <input type="tel" id="job-phone" autocomplete="off" data-ac-field="phone" />
+              <div class="autocomplete-dropdown" id="ac-dd-phone" hidden></div>
+            </div>
           </div>
           <div class="form-group">
             <label>Tengill</label>
-            <input type="text" id="job-contact" />
+            <div class="autocomplete-wrap">
+              <input type="text" id="job-contact" autocomplete="off" data-ac-field="contact" />
+              <div class="autocomplete-dropdown" id="ac-dd-contact" hidden></div>
+            </div>
           </div>
         </div>
 
@@ -907,6 +934,7 @@
 
   // ── LOCAL CACHE (kept in sync by onSnapshot) ───────────────────────────────
   let appData = { jobs: [], driverRequests: [], approvedDrivers: [], containers: [], kars: [] };
+  const _dismissedKeys = new Set();
   let _loggedIn = false;
 
   function getData() { return appData; }
@@ -946,6 +974,13 @@
     await setDoc(doc(db,'kars', key), cleanObj(d)).catch(fsErr('kar'));
   }
   async function fsDeleteKarByKey(key) { await deleteDoc(doc(db,'kars', key)).catch(fsErr('eyðingu kars')); }
+  // Dismissed autocomplete suggestions — director × on a dropdown option
+  async function fsSetDismissedSuggestion(key, combo) {
+    await setDoc(doc(db,'dismissedSuggestions', key), { ...combo, dismissedAt: new Date().toISOString() }).catch(fsErr('tillögu-eyðingu'));
+  }
+  async function fsDeleteDismissedSuggestion(key) {
+    await deleteDoc(doc(db,'dismissedSuggestions', key)).catch(() => {});
+  }
 
   // Global ever-increasing beiðni counter (never reused, survives deletions).
   async function nextBeidniNumber() {
@@ -998,6 +1033,15 @@
     const active = document.querySelector('.tab-panel.active');
     if (active && active.id==='tab-utleiga') renderUtleiga();
     updateUtleigaCount();
+  });
+  onSnapshot(collection(db,'dismissedSuggestions'), snap => {
+    _dismissedKeys.clear();
+    snap.docs.forEach(d => _dismissedKeys.add(d.id));
+    // If autocomplete is open, re-render so dismissed one disappears live
+    document.querySelectorAll('.autocomplete-dropdown:not([hidden])').forEach(dd => {
+      const input = dd.parentElement.querySelector('input');
+      if (input) acShow(input);
+    });
   });
   onSnapshot(collection(db,'kars'), snap => {
     appData.kars = snap.docs.map(d => {
@@ -2632,9 +2676,151 @@
     clearForm();
   };
 
+  // ── AUTOCOMPLETE (fyrri fyrirtæki, staðsetningar, tenglar, símar) ──────────
+  // Builds a dedup'd list of past 4-tuples from appData.jobs, filters by dismissed
+  // keys, and shows a Google-style dropdown below any of the 4 fields.
+  function acCombosKey(c) {
+    return [c.company||'', c.where||'', c.contact||'', c.phone||''].join('|').toLowerCase();
+  }
+  function acBuildCombos() {
+    const map = new Map(); // key → { company, where, contact, phone, lastUsed }
+    for (const j of appData.jobs) {
+      if (!j.company && !j.where && !j.contact && !j.phone) continue;
+      const combo = { company: j.company||'', where: j.where||'', contact: j.contact||'', phone: j.phone||'' };
+      const key = acCombosKey(combo);
+      if (_dismissedKeys.has(key)) continue;
+      const existing = map.get(key);
+      const ts = j.createdAt || j.date || '';
+      if (!existing || (ts > existing.lastUsed)) {
+        map.set(key, { ...combo, key, lastUsed: ts });
+      }
+    }
+    return Array.from(map.values()).sort((a,b) => (b.lastUsed||'').localeCompare(a.lastUsed||''));
+  }
+  function acFilter(combos, query, field) {
+    const q = (query||'').toLowerCase().trim();
+    if (!q) return combos.slice(0, 8);
+    // Match on the field being typed, but also allow substring across all fields
+    return combos.filter(c => {
+      const primary = (c[field]||'').toLowerCase();
+      if (primary.includes(q)) return true;
+      // Fall through: match on other fields too so typing a phone matches company row
+      return (c.company||'').toLowerCase().includes(q)
+          || (c.where||'').toLowerCase().includes(q)
+          || (c.contact||'').toLowerCase().includes(q)
+          || (c.phone||'').toLowerCase().includes(q);
+    }).slice(0, 8);
+  }
+  function acFmtDate(iso) {
+    if (!iso) return '';
+    const d = iso.slice(0, 10);
+    return d.split('-').reverse().join('.');
+  }
+  function acEsc(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function acRenderOptions(dropdown, combos, field) {
+    if (combos.length === 0) {
+      dropdown.innerHTML = ''; // no options → hide
+      dropdown.hidden = true;
+      return;
+    }
+    dropdown.hidden = false;
+    dropdown.innerHTML = combos.map((c, i) => {
+      const parts = [c.where, c.contact, c.phone].filter(Boolean);
+      const sub = parts.length ? parts.map(p => `<span>${acEsc(p)}</span>`).join(' · ') : '';
+      const title = c.company ? acEsc(c.company) : (c.where || c.contact || c.phone || '(án nafns)');
+      const date = c.lastUsed ? `<div class="ac-option-sub" style="margin-top:0.2rem;opacity:0.7;">Notað síðast ${acFmtDate(c.lastUsed)}</div>` : '';
+      return `<div class="ac-option" data-i="${i}" data-key="${acEsc(c.key)}">
+        <div class="ac-option-body">
+          <div class="ac-option-title">${title}</div>
+          ${sub ? `<div class="ac-option-sub">${sub}</div>` : ''}
+          ${date}
+        </div>
+        <div class="ac-option-x" title="Fjarlægja úr tillögum" data-dismiss="${acEsc(c.key)}">×</div>
+      </div>`;
+    }).join('');
+  }
+  function acShow(input) {
+    const field = input.dataset.acField;
+    const dropdown = document.getElementById('ac-dd-' + field);
+    if (!dropdown) return;
+    const combos = acBuildCombos();
+    const filtered = acFilter(combos, input.value, field);
+    acRenderOptions(dropdown, filtered, field);
+  }
+  function acHide(dropdown) {
+    if (dropdown) dropdown.hidden = true;
+  }
+  function acFillFromCombo(combo) {
+    document.getElementById('job-company').value = combo.company || '';
+    document.getElementById('job-where').value = combo.where || '';
+    document.getElementById('job-contact').value = combo.contact || '';
+    document.getElementById('job-phone').value = combo.phone || '';
+    // Close all dropdowns
+    document.querySelectorAll('.autocomplete-dropdown').forEach(acHide);
+  }
+  function acWireInput(input) {
+    if (input.dataset.acWired) return;
+    input.dataset.acWired = '1';
+    const field = input.dataset.acField;
+    const dropdown = document.getElementById('ac-dd-' + field);
+    input.addEventListener('focus', () => acShow(input));
+    input.addEventListener('input', () => acShow(input));
+    input.addEventListener('blur', () => setTimeout(() => acHide(dropdown), 150));
+    input.addEventListener('keydown', (ev) => {
+      if (dropdown.hidden) return;
+      const opts = [...dropdown.querySelectorAll('.ac-option')];
+      const active = dropdown.querySelector('.ac-option.ac-active');
+      let idx = active ? opts.indexOf(active) : -1;
+      if (ev.key === 'ArrowDown') { ev.preventDefault(); idx = Math.min(idx + 1, opts.length - 1); }
+      else if (ev.key === 'ArrowUp') { ev.preventDefault(); idx = Math.max(idx - 1, 0); }
+      else if (ev.key === 'Enter' && idx >= 0) {
+        ev.preventDefault();
+        opts[idx].click();
+        return;
+      }
+      else if (ev.key === 'Escape') { acHide(dropdown); return; }
+      else return;
+      opts.forEach(o => o.classList.remove('ac-active'));
+      if (opts[idx]) opts[idx].classList.add('ac-active');
+    });
+    dropdown.addEventListener('mousedown', async (ev) => {
+      // Dismiss × click
+      const xBtn = ev.target.closest('.ac-option-x');
+      if (xBtn) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const key = xBtn.dataset.dismiss;
+        const combos = acBuildCombos();
+        const combo = combos.find(c => c.key === key);
+        if (combo) await fsSetDismissedSuggestion(key, { company: combo.company, where: combo.where, contact: combo.contact, phone: combo.phone });
+        // The onSnapshot will re-render, but do it now for immediate feedback
+        _dismissedKeys.add(key);
+        acShow(input);
+        return;
+      }
+      // Option click → fill
+      const opt = ev.target.closest('.ac-option');
+      if (!opt) return;
+      ev.preventDefault();
+      const key = opt.dataset.key;
+      const combos = acBuildCombos();
+      const combo = combos.find(c => c.key === key);
+      if (combo) acFillFromCombo(combo);
+    });
+  }
+  function acWireAll() {
+    document.querySelectorAll('input[data-ac-field]').forEach(acWireInput);
+  }
+  // Wire once DOM is settled
+  setTimeout(acWireAll, 0);
+
   window.createJob = function() {
     const data = collectFormData();
     if (!validate(data)) return;
+    // If director just filled a combo that was previously dismissed, un-dismiss
+    // so future autocomplete surfaces it again
+    const key = acCombosKey(data);
+    if (_dismissedKeys.has(key)) fsDeleteDismissedSuggestion(key);
     const missing = getMissingOptional(data);
     if (missing.length > 0) {
       _pendingSendData = data;
