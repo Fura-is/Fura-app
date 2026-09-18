@@ -2743,6 +2743,8 @@
     const field = input.dataset.acField;
     const dropdown = document.getElementById('ac-dd-' + field);
     if (!dropdown) return;
+    // Only show suggestions once the user has typed at least one character
+    if (!input.value || !input.value.trim()) { dropdown.hidden = true; return; }
     const combos = acBuildCombos();
     const filtered = acFilter(combos, input.value, field);
     acRenderOptions(dropdown, filtered, field);
@@ -2763,8 +2765,8 @@
     input.dataset.acWired = '1';
     const field = input.dataset.acField;
     const dropdown = document.getElementById('ac-dd-' + field);
-    input.addEventListener('focus', () => acShow(input));
     input.addEventListener('input', () => acShow(input));
+    input.addEventListener('focus', () => { if (input.value && input.value.trim()) acShow(input); });
     input.addEventListener('blur', () => setTimeout(() => acHide(dropdown), 150));
     input.addEventListener('keydown', (ev) => {
       if (dropdown.hidden) return;
