@@ -280,6 +280,65 @@
     .priority-section-heading .count { background: var(--red); color: #fff; font-size: 0.7rem; padding: 0.1rem 0.5rem; border-radius: 10px; }
     .normal-section-heading { font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin: 1.25rem 0 0.6rem 0; padding-bottom: 0.35rem; border-bottom: 1px solid var(--mid); }
     .priority-nav-badge { display: inline-flex; align-items: center; justify-content: center; background: var(--red); color: #fff; font-size: 0.72rem; font-weight: 900; min-width: 1.15rem; height: 1.15rem; padding: 0 0.4rem; border-radius: 999px; margin-left: 0.35rem; vertical-align: middle; box-shadow: 0 0 0 2px rgba(192,57,43,0.35); animation: priorityPulse 2s ease-in-out infinite; }
+    /* Needs-review flag (VANTAR GÁMANÚMER) */
+    .needs-review-badge { display: block; background: #fef1ee; color: var(--red); font-size: 0.82rem; font-weight: 800; padding: 0.45rem 0.75rem; border-radius: 6px; border: 1.5px solid var(--red); margin-bottom: 0.7rem; text-align: center; letter-spacing: 0.01em; }
+    [data-theme="dark"] .needs-review-badge { background: #3a2523; }
+    .job-card.needs-review { border-left-color: var(--red); }
+    /* Sub-tabs inside main tabs */
+    .sub-tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--mid); }
+    .sub-tab-btn { padding: 0.55rem 1rem; font-size: 0.9rem; font-weight: 700; background: none; border: none; cursor: pointer; color: var(--muted); border-radius: 6px 6px 0 0; margin-bottom: -8px; transition: color 0.15s; border-bottom: 3px solid transparent; }
+    .sub-tab-btn.active { color: var(--rust); border-bottom-color: var(--rust); }
+    /* Gamaskjal table */
+    .gamaskjal-table { width: 100%; border-collapse: collapse; background: var(--white); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); font-size: 0.88rem; }
+    .gamaskjal-table th { background: var(--warm); text-align: left; padding: 0.7rem 0.8rem; font-weight: 800; font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1.5px solid var(--mid); white-space: nowrap; }
+    .gamaskjal-table td { padding: 0.6rem 0.8rem; border-bottom: 1px solid var(--mid); vertical-align: top; }
+    .gamaskjal-table tr:last-child td { border-bottom: none; }
+    .gamaskjal-table tr:hover td { background: var(--warm); }
+    .gamaskjal-table .gs-num { font-weight: 800; color: var(--ink); white-space: nowrap; }
+    .gamaskjal-table .gs-num.gs-kar { color: var(--rust); }
+    .gamaskjal-table .gs-out { color: var(--rust); font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    .gamaskjal-table .gs-days { font-weight: 700; text-align: right; }
+    .gamaskjal-table-wrap { overflow-x: auto; }
+    /* Fyrirtæki cards */
+    .fyr-card { background: var(--white); border-radius: 9px; padding: 0; margin-bottom: 0.6rem; border-left: 4px solid var(--mid); box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden; }
+    .fyr-header { display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1.1rem; cursor: pointer; gap: 1rem; }
+    .fyr-header:hover { background: var(--warm); }
+    .fyr-name { font-size: 1.05rem; font-weight: 800; color: var(--ink); }
+    .fyr-stats { display: flex; gap: 0.85rem; align-items: center; font-size: 0.82rem; color: var(--muted); }
+    .fyr-stats .fyr-active { background: var(--rust); color: #fff; padding: 0.15rem 0.55rem; border-radius: 12px; font-weight: 800; font-size: 0.75rem; }
+    .fyr-caret { color: var(--muted); font-size: 0.9rem; margin-left: 0.25rem; }
+    .fyr-body { padding: 0.35rem 1.1rem 0.9rem 1.1rem; border-top: 1px solid var(--mid); background: var(--warm); }
+    .fyr-rental-line { padding: 0.4rem 0; font-size: 0.9rem; line-height: 1.5; color: var(--ink); border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .fyr-rental-line:last-child { border-bottom: none; }
+    .fyr-rental-line.still-out { color: var(--rust); }
+    .fyr-rental-line.still-out strong { color: var(--rust); }
+    .fyr-subsection-heading { font-size: 0.85rem; font-weight: 800; color: var(--rust); text-transform: uppercase; letter-spacing: 0.05em; margin: 0.35rem 0 0.4rem 0; padding-bottom: 0.35rem; border-bottom: 1.5px solid var(--rust); }
+    .fyr-history-details { margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--mid); }
+    .fyr-history-details summary { cursor: pointer; font-size: 0.88rem; font-weight: 600; color: var(--ink); list-style: none; padding: 0.35rem 0; }
+    .fyr-history-details summary::-webkit-details-marker { display: none; }
+    .fyr-history-details summary::before { content: '▸'; display: inline-block; margin-right: 0.4rem; color: var(--muted); transition: transform 0.15s; }
+    .fyr-history-details[open] summary::before { transform: rotate(90deg); }
+    .fyr-subname-tag { display: inline-block; padding: 0.1rem 0.5rem; background: var(--mid); color: var(--ink); border-radius: 10px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em; vertical-align: middle; }
+    .fyr-more-btn { display: block; width: 100%; padding: 0.55rem; margin-top: 0.4rem; background: transparent; border: 1.5px dashed var(--mid); border-radius: 6px; font-size: 0.82rem; font-weight: 700; color: var(--muted); cursor: pointer; transition: all 0.15s; }
+    .mixed-section-divider { margin: 1rem 0 0.6rem 0; padding: 0.55rem 0.85rem; background: rgba(196,98,26,0.08); border-left: 3px solid var(--rust); border-radius: 5px; font-size: 0.85rem; color: var(--rust); font-weight: 700; }
+    /* Weekly reconciliation banner + modal rows */
+    .reconcile-banner { display: flex; align-items: center; gap: 0.55rem; padding: 0.6rem 1rem; margin: 0.5rem auto 0.85rem auto; max-width: 1200px; background: #fff7e6; border: 1.5px solid #f0c060; border-radius: 8px; cursor: pointer; font-size: 0.9rem; transition: background 0.15s; }
+    .reconcile-banner:hover { background: #ffefcc; }
+    [data-theme="dark"] .reconcile-banner { background: #3a3220; border-color: #8a7220; }
+    .reconcile-banner-text { font-weight: 800; color: var(--ink); }
+    .reconcile-banner-count { background: var(--rust); color: #fff; font-size: 0.78rem; font-weight: 900; padding: 0.15rem 0.55rem; border-radius: 12px; }
+    .reconcile-banner-hint { color: var(--muted); font-size: 0.82rem; margin-left: auto; }
+    .reconcile-row { display: grid; grid-template-columns: 1fr auto auto; gap: 0.6rem; align-items: center; padding: 0.65rem 0.85rem; border-bottom: 1px solid var(--mid); }
+    .reconcile-row:last-child { border-bottom: none; }
+    .reconcile-row-info { min-width: 0; }
+    .reconcile-row-num { font-weight: 800; color: var(--ink); font-size: 0.95rem; }
+    .reconcile-row-detail { font-size: 0.82rem; color: var(--muted); margin-top: 0.15rem; }
+    .reconcile-row.done { opacity: 0.4; }
+    @media (max-width: 640px) {
+      .reconcile-row { grid-template-columns: 1fr; }
+    }
+    [data-theme="dark"] .mixed-section-divider { background: rgba(196,98,26,0.15); }
+    .fyr-more-btn:hover { border-color: var(--rust); color: var(--rust); }
     .job-row { display: grid; grid-template-columns: 65px 1fr; gap: 0.6rem; align-items: start; margin-bottom: 0.75rem; }
     .job-row-side { padding-top: 1.5rem; text-align: right; }
     .job-row-card { min-width: 0; }
@@ -494,11 +553,19 @@
     </div>
   </header>
   <main>
+    <!-- Weekly reconciliation banner — only visible on Tuesdays -->
+    <div id="reconcile-banner" style="display:none;" class="reconcile-banner" onclick="openReconcileModal()">
+      <span class="reconcile-banner-icon">🔔</span>
+      <span class="reconcile-banner-text">Vikuleg staðfesting</span>
+      <span class="reconcile-banner-count" id="reconcile-banner-count">0</span>
+      <span class="reconcile-banner-hint">Smelltu til að fara yfir</span>
+    </div>
     <div class="tabs">
       <button class="tab-btn tab-primary active" onclick="switchTab('jobs', this)">Beiðnir</button>
       <button class="tab-btn tab-primary" onclick="switchTab('new-job', this)">+ Ný beiðni</button>
       <button class="tab-btn tab-primary" id="utleiga-tab-btn" onclick="switchTab('utleiga', this)">🚛 Gámar</button>
       <button class="tab-btn tab-primary" id="kor-tab-btn" onclick="switchTab('kor', this)">🛢 Kör</button>
+      <button class="tab-btn tab-primary" id="fyrirtaeki-tab-btn" onclick="switchTab('fyrirtaeki', this)">🏢 Fyrirtæki</button>
       <button class="tab-btn tab-secondary" onclick="switchTab('geymsla', this)">🗄 Geymsla</button>
       <button class="tab-btn tab-secondary" id="requests-tab-btn" onclick="switchTab('requests', this)">Bílstjórar</button>
     </div>
@@ -556,17 +623,17 @@
         </div>
 
         <div class="form-group">
-          <label>Tegund beiðni</label>
+          <label>Tegund beiðni <small style="color:var(--muted);font-weight:400;">— má velja allt að 2 (t.d. Sækja gám + Sækja kar)</small></label>
           <div class="option-group" id="job-type-group">
-            <button type="button" class="option-btn" onclick="selectOption('job-type-group', this, 'sekja')">Taka gám</button>
-            <button type="button" class="option-btn" onclick="selectOption('job-type-group', this, 'losa')">Losa gám</button>
-            <button type="button" class="option-btn" onclick="selectOption('job-type-group', this, 'skipta')">Skipta gám</button>
-            <button type="button" class="option-btn" onclick="selectOption('job-type-group', this, 'fara')">Vantar gám</button>
-            <button type="button" class="option-btn" onclick="selectOption('job-type-group', this, 'taka-kar')">Taka kar</button>
-            <button type="button" class="option-btn" onclick="selectOption('job-type-group', this, 'losa-kar')">Losa kar</button>
-            <button type="button" class="option-btn" onclick="selectOption('job-type-group', this, 'skipta-kari')">Skipta kari</button>
-            <button type="button" class="option-btn" onclick="selectOption('job-type-group', this, 'vantar-kar')">Vantar kar</button>
-            <button type="button" class="option-btn annad-btn" onclick="selectOption('job-type-group', this, 'annad-type')">Annað</button>
+            <button type="button" class="option-btn" onclick="selectJobType(this, 'sekja')">Taka gám</button>
+            <button type="button" class="option-btn" onclick="selectJobType(this, 'losa')">Losa gám</button>
+            <button type="button" class="option-btn" onclick="selectJobType(this, 'skipta')">Skipta gám</button>
+            <button type="button" class="option-btn" onclick="selectJobType(this, 'fara')">Vantar gám</button>
+            <button type="button" class="option-btn" onclick="selectJobType(this, 'taka-kar')">Taka kar</button>
+            <button type="button" class="option-btn" onclick="selectJobType(this, 'losa-kar')">Losa kar</button>
+            <button type="button" class="option-btn" onclick="selectJobType(this, 'skipta-kari')">Skipta kari</button>
+            <button type="button" class="option-btn" onclick="selectJobType(this, 'vantar-kar')">Vantar kar</button>
+            <button type="button" class="option-btn annad-btn" onclick="selectJobType(this, 'annad-type')">Annað</button>
           </div>
           <div class="other-input" id="job-type-other-wrap">
             <input type="text" id="job-type-other" placeholder="Lýstu tegund beiðni..." />
@@ -576,9 +643,9 @@
         <div class="form-group">
           <label>Lýsing á efni</label>
           <div class="option-group" id="job-material-group">
-            <button type="button" class="option-btn" onclick="selectOption('job-material-group', this, 'jarn')">Járn</button>
-            <button type="button" class="option-btn" onclick="selectOption('job-material-group', this, 'timbur')">Timbur</button>
-            <button type="button" class="option-btn annad-btn" onclick="selectOption('job-material-group', this, 'annad')">Annað</button>
+            <button type="button" class="option-btn" onclick="selectMaterial(this, 'jarn')">Járn</button>
+            <button type="button" class="option-btn" onclick="selectMaterial(this, 'timbur')">Timbur</button>
+            <button type="button" class="option-btn annad-btn" onclick="selectMaterial(this, 'annad')">Annað</button>
           </div>
           <div class="other-input" id="job-material-other-wrap">
             <input type="text" id="job-material-other" placeholder="Lýstu efninu..." />
@@ -645,7 +712,6 @@
         </div>
 
         <div class="send-row">
-          <button class="btn btn-outline" onclick="printCurrentForm()">🖨 Prenta</button>
           <button class="btn btn-outline" id="cancel-edit-btn" onclick="exitEditMode()" style="display:none;">Hætta við</button>
           <button class="btn btn-rust" id="senda-btn" onclick="createJob()">Senda beiðni</button>
         </div>
@@ -677,27 +743,46 @@
     <!-- REQUESTS -->
     <!-- Í ÚTLEIGU -->
     <div class="tab-panel" id="tab-utleiga">
-      <div class="utleiga-toolbar">
-        <div class="geymsla-search-wrap" style="flex:1;margin:0;">
-          <span class="geymsla-search-icon">🔍</span>
-          <input type="text" id="utleiga-search" placeholder="Leita eftir númeri, fyrirtæki, staðsetningu eða efni..." oninput="renderUtleiga()" />
-        </div>
-        <button class="btn btn-rust btn-sm" onclick="openContainerForm()">+ Bæta við gámi</button>
-        <button class="btn btn-outline btn-sm" onclick="openContainerImport()">📥 Flytja inn úr Excel</button>
+      <div class="sub-tabs">
+        <button class="sub-tab-btn active" id="sub-tab-current" onclick="switchGamarSubTab('current')">🚛 Gámar</button>
+        <button class="sub-tab-btn" id="sub-tab-log" onclick="switchGamarSubTab('log')">📋 Gámaskjal</button>
       </div>
-      <div id="utleiga-summary" class="utleiga-summary"></div>
-      <div class="utleiga-layout" id="utleiga-layout">
-        <div>
-          <div id="utleiga-list"></div>
-          <div id="utleiga-kor-section" style="margin-top:1.5rem;">
-            <div class="section-heading" style="display:flex;align-items:center;gap:0.5rem;margin:0 0 0.5rem 0;">
-              <span>🛢 Kör</span>
-              <span id="utleiga-kor-count" style="font-size:0.78rem;color:var(--muted);font-weight:500;"></span>
-            </div>
-            <div id="utleiga-kor-list"></div>
+      <!-- Sub-tab: current state -->
+      <div id="gamar-sub-current">
+        <div class="utleiga-toolbar">
+          <div class="geymsla-search-wrap" style="flex:1;margin:0;">
+            <span class="geymsla-search-icon">🔍</span>
+            <input type="text" id="utleiga-search" placeholder="Leita eftir númeri, fyrirtæki, staðsetningu eða efni..." oninput="renderUtleiga()" />
           </div>
+          <button class="btn btn-rust btn-sm" onclick="openContainerForm()">+ Bæta við gámi</button>
+          <button class="btn btn-outline btn-sm" onclick="openContainerImport()">📥 Flytja inn úr Excel</button>
         </div>
-        <div id="utleiga-billing-panel" class="utleiga-billing-panel" style="display:none;"></div>
+        <div id="utleiga-summary" class="utleiga-summary"></div>
+        <div class="utleiga-layout" id="utleiga-layout">
+          <div>
+            <div id="utleiga-list"></div>
+            <div id="utleiga-kor-section" style="margin-top:1.5rem;">
+              <div class="section-heading" style="display:flex;align-items:center;gap:0.5rem;margin:0 0 0.5rem 0;">
+                <span>🛢 Kör</span>
+                <span id="utleiga-kor-count" style="font-size:0.78rem;color:var(--muted);font-weight:500;"></span>
+              </div>
+              <div id="utleiga-kor-list"></div>
+            </div>
+          </div>
+          <div id="utleiga-billing-panel" class="utleiga-billing-panel" style="display:none;"></div>
+        </div>
+      </div>
+      <!-- Sub-tab: gamaskjal (flat rental history) -->
+      <div id="gamar-sub-log" style="display:none;">
+        <div class="utleiga-toolbar">
+          <div class="geymsla-search-wrap" style="flex:1;margin:0;">
+            <span class="geymsla-search-icon">🔍</span>
+            <input type="text" id="gamaskjal-search" placeholder="Leita eftir númeri, fyrirtæki eða staðsetningu..." oninput="renderGamaskjal()" />
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="copyGamaskjalToClipboard()">📋 Afrita í Excel</button>
+        </div>
+        <div id="gamaskjal-summary" class="utleiga-summary"></div>
+        <div id="gamaskjal-table-wrap"></div>
       </div>
     </div>
 
@@ -715,6 +800,18 @@
         <div id="kor-list"></div>
         <div id="kor-billing-panel" class="utleiga-billing-panel" style="display:none;"></div>
       </div>
+    </div>
+
+    <!-- FYRIRTÆKI -->
+    <div class="tab-panel" id="tab-fyrirtaeki">
+      <div class="utleiga-toolbar">
+        <div class="geymsla-search-wrap" style="flex:1;margin:0;">
+          <span class="geymsla-search-icon">🔍</span>
+          <input type="text" id="fyrirtaeki-search" placeholder="Leita eftir fyrirtæki..." oninput="renderFyrirtaeki()" />
+        </div>
+      </div>
+      <div id="fyrirtaeki-summary" class="utleiga-summary"></div>
+      <div id="fyrirtaeki-list"></div>
     </div>
 
     <!-- BEIÐNIR -->
@@ -887,6 +984,44 @@
   </div>
 </div>
 
+<!-- Audit log viewer modal -->
+<div class="modal-overlay" id="audit-log-modal" style="display:none;" onclick="if(event.target===this)closeAuditLog()">
+  <div class="modal-box" style="max-width:640px;">
+    <div class="modal-title" id="audit-log-title">📖 Saga</div>
+    <div id="audit-log-body" style="font-size:0.9rem;max-height:65vh;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeAuditLog()">Loka</button>
+    </div>
+  </div>
+</div>
+
+<!-- Weekly reconciliation modal — verify each úti gám/kar is still where it should be -->
+<div class="modal-overlay" id="reconcile-modal" style="display:none;" onclick="if(event.target===this)closeReconcileModal()">
+  <div class="modal-box" style="max-width:640px;">
+    <div class="modal-title">🔔 Vikuleg staðfesting</div>
+    <div style="font-size:0.88rem;color:var(--muted);margin-bottom:0.85rem;">
+      Farðu í gegnum listann. Ef gámur/kar er ennþá úti hjá fyrirtækinu → <strong>Staðfest ennþá</strong>. Ef ekki → <strong>Breyta stöðu</strong>.
+    </div>
+    <div id="reconcile-list" style="max-height:65vh;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeReconcileModal()">Loka</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rental vista confirmation modal — shows exactly what will change -->
+<div class="modal-overlay" id="rental-vista-confirm-modal" style="display:none;" onclick="if(event.target===this)closeRentalVistaConfirm()">
+  <div class="modal-box" style="max-width:560px;">
+    <div class="modal-title" id="rvc-title">Staðfesta þessar aðgerðir?</div>
+    <div id="rvc-body" style="font-size:0.92rem;line-height:1.5;max-height:60vh;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeRentalVistaConfirm()">Hætta við</button>
+      <button class="btn btn-ink" id="rvc-edit-btn">✏ Breyta</button>
+      <button class="btn btn-green" id="rvc-confirm-btn">Já, staðfesta</button>
+    </div>
+  </div>
+</div>
+
 <!-- Container Excel import modal -->
 <div class="modal-overlay" id="container-import-modal" style="display:none;" onclick="if(event.target===this)closeContainerImport()">
   <div class="modal-box" style="max-width:1100px;width:96vw;max-height:92vh;display:flex;flex-direction:column;">
@@ -918,7 +1053,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
-  import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, runTransaction } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+  import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, runTransaction, query, where, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAdDfbGWGnBHqCxfBQvay36JDXLTPA12SY",
@@ -954,32 +1089,107 @@
       throw e;
     };
   }
-  async function fsSetJob(job)       { const {id,...d}=job; await setDoc(doc(db,'jobs',id), cleanObj(d)).catch(fsErr('beiðni')); }
-  async function fsDeleteJob(id)     { await deleteDoc(doc(db,'jobs',id)).catch(fsErr('eyðingu beiðni')); }
+  async function fsSetJob(job) {
+    const oldJob = appData.jobs.find(x => x.id === job.id);
+    const {id,...d} = job;
+    await setDoc(doc(db,'jobs',id), cleanObj(d)).catch(fsErr('beiðni'));
+    // Audit only meaningful status transitions (avoid spam)
+    if (oldJob && oldJob.status !== job.status) {
+      fsWriteAudit({ action: 'beidni_status_change', targetType: 'beidni', targetId: id, beforeStatus: oldJob.status, afterStatus: job.status, company: job.company || '', where: job.where || '', driverLabel: job.driverLabel || '', seq: job.seq || null });
+    } else if (!oldJob) {
+      fsWriteAudit({ action: 'beidni_created', targetType: 'beidni', targetId: id, afterStatus: job.status, company: job.company || '', where: job.where || '', driverLabel: job.driverLabel || '', seq: job.seq || null });
+    }
+  }
+  async function fsDeleteJob(id) {
+    const old = appData.jobs.find(x => x.id === id);
+    await deleteDoc(doc(db,'jobs',id)).catch(fsErr('eyðingu beiðni'));
+    if (old) fsWriteAudit({ action: 'beidni_delete', targetType: 'beidni', targetId: id, beforeStatus: old.status, company: old.company || '', where: old.where || '', driverLabel: old.driverLabel || '', seq: old.seq || null });
+  }
   async function fsSetRequest(req)   { const {id,...d}=req; await setDoc(doc(db,'driverRequests',id), cleanObj(d)).catch(fsErr('bílstjórabeiðni')); }
   async function fsDeleteRequest(id) { await deleteDoc(doc(db,'driverRequests',id)).catch(fsErr('eyðingu bílstjórabeiðni')); }
   async function fsSetDriver(dr)     { const {id,...d}=dr; await setDoc(doc(db,'approvedDrivers',id), cleanObj(d)).catch(fsErr('bílstjóra')); }
   async function fsDeleteDriver(id)  { await deleteDoc(doc(db,'approvedDrivers',id)).catch(fsErr('eyðingu bílstjóra')); }
   function makeContainerKey(displayId, size) { return `${displayId}__${size || 'litill'}`; }
-  async function fsSetContainer(c) {
+  async function fsSetContainer(c, auditCtx = {}) {
     const key = c._key || makeContainerKey(c.id, c.size);
+    const old = appData.containers.find(x => x._key === key) || null;
     const {_key, id, ...d} = c;
     d.id = id;
     await setDoc(doc(db,'containers', key), cleanObj(d)).catch(fsErr('gám'));
+    // Audit: log a status change or a fresh add
+    if (!old) {
+      fsWriteAudit({ action: 'container_add', targetType: 'container', targetId: id, afterStatus: c.status, company: c.company || '', where: c.where || '', jobId: auditCtx.jobId, note: auditCtx.note });
+    } else if (old.status !== c.status) {
+      const action = c.status === 'utleigu' ? 'container_start_rental' : 'container_end_rental';
+      fsWriteAudit({ action, targetType: 'container', targetId: id, beforeStatus: old.status, afterStatus: c.status, beforeCompany: old.company || '', beforeWhere: old.where || '', company: c.company || '', where: c.where || '', placedAt: c.placedAt || null, jobId: auditCtx.jobId, note: auditCtx.note });
+    } else if (old.company !== c.company || old.where !== c.where) {
+      fsWriteAudit({ action: 'container_update', targetType: 'container', targetId: id, beforeCompany: old.company || '', beforeWhere: old.where || '', company: c.company || '', where: c.where || '', jobId: auditCtx.jobId, note: auditCtx.note });
+    }
   }
-  async function fsDeleteContainerByKey(key) { await deleteDoc(doc(db,'containers', key)).catch(fsErr('eyðingu gáms')); }
-  async function fsSetKar(k) {
+  async function fsDeleteContainerByKey(key, auditCtx = {}) {
+    const old = appData.containers.find(x => x._key === key);
+    await deleteDoc(doc(db,'containers', key)).catch(fsErr('eyðingu gáms'));
+    if (old) fsWriteAudit({ action: 'container_delete', targetType: 'container', targetId: old.id, beforeStatus: old.status, beforeCompany: old.company || '', beforeWhere: old.where || '', jobId: auditCtx.jobId, note: auditCtx.note });
+  }
+  async function fsSetKar(k, auditCtx = {}) {
     const key = k._key || k.id;
+    const old = appData.kars.find(x => x._key === key) || null;
     const {_key, ...d} = k;
     await setDoc(doc(db,'kars', key), cleanObj(d)).catch(fsErr('kar'));
+    if (!old) {
+      fsWriteAudit({ action: 'kar_add', targetType: 'kar', targetId: k.id, afterStatus: k.status, company: k.company || '', where: k.where || '', jobId: auditCtx.jobId, note: auditCtx.note });
+    } else if (old.status !== k.status) {
+      const action = k.status === 'utleigu' ? 'kar_start_rental' : 'kar_end_rental';
+      fsWriteAudit({ action, targetType: 'kar', targetId: k.id, beforeStatus: old.status, afterStatus: k.status, beforeCompany: old.company || '', beforeWhere: old.where || '', company: k.company || '', where: k.where || '', placedAt: k.placedAt || null, jobId: auditCtx.jobId, note: auditCtx.note });
+    } else if (old.company !== k.company || old.where !== k.where) {
+      fsWriteAudit({ action: 'kar_update', targetType: 'kar', targetId: k.id, beforeCompany: old.company || '', beforeWhere: old.where || '', company: k.company || '', where: k.where || '', jobId: auditCtx.jobId, note: auditCtx.note });
+    }
   }
-  async function fsDeleteKarByKey(key) { await deleteDoc(doc(db,'kars', key)).catch(fsErr('eyðingu kars')); }
+  async function fsDeleteKarByKey(key, auditCtx = {}) {
+    const old = appData.kars.find(x => x._key === key);
+    await deleteDoc(doc(db,'kars', key)).catch(fsErr('eyðingu kars'));
+    if (old) fsWriteAudit({ action: 'kar_delete', targetType: 'kar', targetId: old.id, beforeStatus: old.status, beforeCompany: old.company || '', beforeWhere: old.where || '', jobId: auditCtx.jobId, note: auditCtx.note });
+  }
   // Dismissed autocomplete suggestions — director × on a dropdown option
   async function fsSetDismissedSuggestion(key, combo) {
     await setDoc(doc(db,'dismissedSuggestions', key), { ...combo, dismissedAt: new Date().toISOString() }).catch(fsErr('tillögu-eyðingu'));
   }
   async function fsDeleteDismissedSuggestion(key) {
     await deleteDoc(doc(db,'dismissedSuggestions', key)).catch(() => {});
+  }
+  // Audit log: every state change on a gám/kar/beiðni writes an entry here.
+  // Docs are auto-IDed; 1-year retention enforced client-side (older entries not shown).
+  // Payload shape:
+  //   { ts, action, targetType: 'container'|'kar'|'beidni', targetId, jobId?, beforeStatus?, afterStatus?, company?, where?, note? }
+  async function fsWriteAudit(entry) {
+    try {
+      await addDoc(collection(db,'auditLog'), cleanObj({ ...entry, ts: new Date().toISOString() }));
+    } catch (e) {
+      // Never block a real action because audit failed — just console.
+      console.warn('audit write failed', e);
+    }
+  }
+  // Automatic pruning: delete audit-log entries older than 365 days.
+  // Runs at most once per day per browser (localStorage throttle) to keep costs low.
+  async function pruneOldAuditEntries() {
+    try {
+      const lastKey = 'fura_last_audit_prune';
+      const lastRun = Number(localStorage.getItem(lastKey) || 0);
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      if (Date.now() - lastRun < oneDayMs) return;
+      const cutoff = new Date(Date.now() - 365 * oneDayMs).toISOString();
+      const snap = await getDocs(query(collection(db,'auditLog'), where('ts','<', cutoff)));
+      let deleted = 0;
+      for (const d of snap.docs) {
+        await deleteDoc(d.ref).catch(() => {});
+        deleted++;
+        if (deleted > 500) break; // cap per run to avoid hammering
+      }
+      localStorage.setItem(lastKey, String(Date.now()));
+      if (deleted > 0) console.log(`audit-log cleanup: deleted ${deleted} entries older than 1 year`);
+    } catch (e) {
+      console.warn('audit prune failed', e);
+    }
   }
 
   // Global ever-increasing beiðni counter (never reused, survives deletions).
@@ -1004,8 +1214,13 @@
     if (!active) return;
     if (active.id==='tab-jobs')    renderJobsList();
     if (active.id==='tab-geymsla') renderGeymsla();
-    if (active.id==='tab-utleiga') renderBillingPanel();
+    if (active.id==='tab-utleiga') {
+      renderBillingPanel();
+      // Gámaskjal shares data with rental summaries — refresh if sub-tab is open
+      if (document.getElementById('gamar-sub-log')?.style.display !== 'none') renderGamaskjal();
+    }
     if (active.id==='tab-kor')     renderKorBillingPanel();
+    if (active.id==='tab-fyrirtaeki') renderFyrirtaeki();
     updateRequestsBadge();
   });
   onSnapshot(collection(db,'driverRequests'), snap => {
@@ -1033,6 +1248,7 @@
     const active = document.querySelector('.tab-panel.active');
     if (active && active.id==='tab-utleiga') renderUtleiga();
     updateUtleigaCount();
+    updateReconcileBanner();
   });
   onSnapshot(collection(db,'dismissedSuggestions'), snap => {
     _dismissedKeys.clear();
@@ -1053,6 +1269,7 @@
     if (active && active.id==='tab-kor') renderKor();
     if (active && active.id==='tab-utleiga') renderUtleiga();
     updateKorCount();
+    updateReconcileBanner();
   });
 
   const DIRECTOR_PASSWORD = 'fura2024';
@@ -1097,6 +1314,9 @@
     updateRequestsBadge();
     updateUtleigaCount();
     updateKorCount();
+    updateReconcileBanner();
+    // Kick off client-side audit-log cleanup (throttled to once/day)
+    pruneOldAuditEntries();
   }
   const SESSION_MAX_MS = 7 * 24 * 60 * 60 * 1000; // 1 week
   window.doLogin = function() {
@@ -1249,6 +1469,245 @@
     if (name === 'geymsla') window.clearGeymslaFilters();
     if (name === 'utleiga') renderUtleiga();
     if (name === 'kor') renderKor();
+    if (name === 'fyrirtaeki') renderFyrirtaeki();
+  };
+
+  // ── FYRIRTÆKI TAB ──────────────────────────────────────────────────────────
+  // For each unique company: aggregate every rental (from any beiðni).
+  // Click to expand → see each individual rental with days.
+  function collectCompanyGroups() {
+    // Two data sources contribute to the company summary:
+    //   1) Live gám/kar state (appData.containers/kars) — the source of truth for "úti núna"
+    //   2) Historical rentalSummaries from completed beiðnir — the source for past rentals
+    // To keep "N útleigur" consistent with "N úti" we count every live úti unit as ONE
+    // ongoing rental, and every 'end' summary as ONE completed rental. We ignore 'start'
+    // summaries here because they would double-count with the live úti state.
+    // Smart merging of company names — combines:
+    //   • Case/whitespace variants ("ÞG verk" == "þg verk")
+    //   • Word-prefix variants ("Byko" == "Byko Breidd" == "Byko leiga Selhellu")
+    // Rule: two names merge if the shorter's words are a prefix (word-by-word) of the longer's.
+    // Canonical base = shortest such name. Display uses the most-common casing.
+    const allNames = new Set();
+    for (const c of appData.containers) if (c.company) allNames.add(c.company.trim());
+    for (const k of appData.kars) if (k.company) allNames.add(k.company.trim());
+    for (const j of appData.jobs) if (j.company) allNames.add(j.company.trim());
+    const nameList = [...allNames].filter(Boolean).sort((a, b) => {
+      const wa = a.split(/\s+/).length, wb = b.split(/\s+/).length;
+      if (wa !== wb) return wa - wb;
+      return a.length - b.length;
+    });
+    const isWordPrefix = (shorter, longer) => {
+      const sW = shorter.toLowerCase().split(/\s+/);
+      const lW = longer.toLowerCase().split(/\s+/);
+      if (sW.length > lW.length) return false;
+      for (let i = 0; i < sW.length; i++) if (sW[i] !== lW[i]) return false;
+      return true;
+    };
+    const canonicalBase = new Map(); // rawLowerCase -> canonical raw name
+    for (const name of nameList) {
+      let base = name;
+      for (const other of nameList) {
+        if (other === name) break; // only compare with SHORTER names (sorted first)
+        if (isWordPrefix(other, name)) { base = other; break; }
+      }
+      canonicalBase.set(name.toLowerCase(), base);
+    }
+    const map = new Map();
+    const casingCounts = new Map(); // normalized key -> Map<originalName, count>
+    // Extract suffix beyond canonical base — becomes a small "note" tag on the row
+    // e.g. raw="Byko leiga Selhellu", canonical="Byko" → subName="leiga Selhellu"
+    const computeSubName = (raw, canonical) => {
+      if (!raw || !canonical) return '';
+      if (raw.toLowerCase() === canonical.toLowerCase()) return '';
+      if (raw.toLowerCase().startsWith(canonical.toLowerCase())) {
+        return raw.slice(canonical.length).trim().replace(/^[,\-\s]+/, '');
+      }
+      return '';
+    };
+    const getGroup = (companyName) => {
+      const raw = (companyName || '').trim();
+      const canonical = canonicalBase.get(raw.toLowerCase()) || raw || '(án fyrirtækis)';
+      const key = canonical.toLowerCase();
+      if (!casingCounts.has(key)) casingCounts.set(key, new Map());
+      const cMap = casingCounts.get(key);
+      cMap.set(canonical, (cMap.get(canonical) || 0) + 1);
+      if (!map.has(key)) map.set(key, { company: canonical, rentals: [], totalDays: 0, activeCount: 0, activeGamar: 0, activeKor: 0 });
+      return map.get(key);
+    };
+    const todayMs = Date.now();
+    // 1) Live currently-úti — one ongoing rental each
+    const addLive = (item, isKar) => {
+      if (item.status !== 'utleigu') return;
+      const g = getGroup(item.company);
+      const days = item.placedAt ? Math.max(0, Math.floor((todayMs - new Date(item.placedAt + 'T00:00:00').getTime()) / 86400000)) : 0;
+      g.rentals.push({
+        containerId: item.id,
+        company: item.company || '',
+        subName: computeSubName(item.company || '', g.company),
+        where: item.where || '',
+        efni: item.efni || '', efniLabel: item.efniLabel || '',
+        placedAt: item.placedAt || null,
+        returnedAt: null,
+        stillOut: true,
+        days,
+        isKar
+      });
+      g.totalDays += days;
+      g.activeCount++;
+      if (isKar) g.activeKor++; else g.activeGamar++;
+    };
+    for (const c of appData.containers) addLive(c, false);
+    for (const k of appData.kars) addLive(k, true);
+    // 2) Historical completed rentals — only 'end' summaries (start summaries duplicate live)
+    for (const job of appData.jobs) {
+      if (!job.rentalSummaries || job.rentalSummaries.length === 0) continue;
+      for (const s of job.rentalSummaries) {
+        if (s.type === 'start') continue; // avoid double-counting with live
+        const isKar = isKarJobType(s.jobType || job.jobType);
+        const g = getGroup(s.company);
+        g.rentals.push({
+          jobId: job.id,
+          containerId: s.containerId,
+          company: s.company || '',
+          subName: computeSubName(s.company || '', g.company),
+          where: s.where || job.where || '',
+          efni: s.efni || job.material || '', efniLabel: s.efniLabel || job.materialLabel || '',
+          placedAt: s.placedAt || null,
+          returnedAt: s.returnedAt || null,
+          stillOut: false,
+          days: s.days || 0,
+          isKar
+        });
+        g.totalDays += (s.days || 0);
+      }
+    }
+    // Pick the most-frequent casing as the display name for each merged group
+    for (const [key, group] of map.entries()) {
+      const cMap = casingCounts.get(key);
+      if (!cMap) continue;
+      let best = group.company, bestCount = 0;
+      for (const [name, count] of cMap.entries()) {
+        if (name && count > bestCount) { best = name; bestCount = count; }
+      }
+      group.company = best;
+    }
+    // Sort by activity (still-out first, then most rentals)
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.activeCount !== b.activeCount) return b.activeCount - a.activeCount;
+      return b.rentals.length - a.rentals.length;
+    });
+  }
+
+  window.renderFyrirtaeki = function() {
+    const listEl = document.getElementById('fyrirtaeki-list');
+    const sumEl = document.getElementById('fyrirtaeki-summary');
+    if (!listEl) return;
+    const q = (document.getElementById('fyrirtaeki-search')?.value || '').trim().toLowerCase();
+    let groups = collectCompanyGroups();
+    if (q) groups = groups.filter(g => g.company.toLowerCase().includes(q));
+    const totalActive = groups.reduce((s, g) => s + g.activeCount, 0);
+    sumEl.innerHTML = `<strong>${groups.length}</strong> fyrirtæki · <strong style="color:var(--rust);">${totalActive}</strong> með gám úti núna`;
+    if (groups.length === 0) {
+      listEl.innerHTML = `<div class="empty-state"><div class="icon">🏢</div>${q ? 'Ekkert fyrirtæki fannst' : 'Engin fyrirtæki enn'}</div>`;
+      return;
+    }
+    listEl.innerHTML = groups.map((g, i) => fyrCardHtml(g, i, 5)).join('');
+  };
+
+  function fyrCardHtml(g, i, initialShow) {
+    const efniLbl = (r) => r.efni === 'annad' ? (r.efniLabel || 'Annað') : (efniLabels[r.efni] || '');
+    // Short date: DD.M for current year, else DD.M.YYYY
+    const shortDate = (iso) => {
+      if (!iso) return '—';
+      const [y, m, d] = iso.split('-').map(Number);
+      const currY = new Date().getFullYear();
+      return y === currY ? `${d}.${m}` : `${d}.${m}.${String(y).slice(-2)}`;
+    };
+    // Currently úti gámar/kör (live from appData, not from rental summaries)
+    // These are what matter for daily operations
+    const currentlyOut = [];
+    for (const c of appData.containers) {
+      if (c.status === 'utleigu' && (c.company || '').trim() === g.company) currentlyOut.push({ isKar: false, ...c });
+    }
+    for (const k of appData.kars) {
+      if (k.status === 'utleigu' && (k.company || '').trim() === g.company) currentlyOut.push({ isKar: true, ...k });
+    }
+    currentlyOut.sort((a, b) => (a.placedAt || '').localeCompare(b.placedAt || '')); // oldest first
+    const daysNow = (placedAt) => placedAt ? Math.max(0, Math.floor((Date.now() - new Date(placedAt + 'T00:00:00').getTime()) / 86400000)) : 0;
+    // Compute subName for each live-out item too — extra suffix beyond canonical base
+    const subNameForLive = (rawCompany) => {
+      if (!rawCompany) return '';
+      const canonical = g.company;
+      if (rawCompany.toLowerCase() === canonical.toLowerCase()) return '';
+      if (rawCompany.toLowerCase().startsWith(canonical.toLowerCase())) {
+        return rawCompany.slice(canonical.length).trim().replace(/^[,\-\s]+/, '');
+      }
+      return '';
+    };
+    const outSection = currentlyOut.length > 0
+      ? `<div class="fyr-subsection-heading">🚛 ${currentlyOut.length} úti núna hjá ${escHtml(g.company)}</div>` +
+        currentlyOut.map(item => {
+          const unit = item.isKar ? '🛢' : '🚛';
+          const d = daysNow(item.placedAt);
+          const efni = efniLbl(item);
+          const where = item.where ? `<span style="color:var(--muted);">📍 ${escHtml(item.where)}</span> · ` : '';
+          const sub = subNameForLive(item.company || '');
+          const subTag = sub ? `<span class="fyr-subname-tag">${escHtml(sub)}</span> ` : '';
+          return `<div class="fyr-rental-line still-out">
+            <strong>${unit} #${escHtml(item.id)}</strong> ${subTag}· ${where}síðan <strong>${shortDate(item.placedAt)}</strong> (<strong>${d} d</strong>)${efni ? ` · ${escHtml(efni)}` : ''}
+          </div>`;
+        }).join('')
+      : `<div class="fyr-subsection-heading" style="color:var(--green);">✓ Engir gámar úti núna hjá ${escHtml(g.company)}</div>`;
+    // History: completed rentals only — collapsed toggle
+    const completedRentals = g.rentals.filter(r => !r.stillOut);
+    const rentalRow = (r) => {
+      const unit = r.isKar ? '🛢' : '🚛';
+      const efni = efniLbl(r);
+      const efniPart = efni ? ` · ${escHtml(efni)}` : '';
+      const where = r.where ? `<span style="color:var(--muted);">📍 ${escHtml(r.where)}</span> · ` : '';
+      const subTag = r.subName ? `<span class="fyr-subname-tag">${escHtml(r.subName)}</span> ` : '';
+      return `<div class="fyr-rental-line">
+        <strong>${unit} #${escHtml(r.containerId)}</strong> ${subTag}· ${where}${shortDate(r.placedAt)} → ${shortDate(r.returnedAt)} · <strong>${r.days} d</strong>${efniPart}
+      </div>`;
+    };
+    const historyBlock = completedRentals.length > 0
+      ? `<details class="fyr-history-details">
+          <summary>Sótt til baka — <strong>${completedRentals.length} útleigur</strong> · <span style="color:var(--muted);">smelltu til að sjá</span></summary>
+          <div style="margin-top:0.5rem;">${completedRentals.map(rentalRow).join('')}</div>
+        </details>`
+      : '';
+    // Bara það sem skiptir máli í fyrstu sýn: hve marga eiga þeir NÚNA
+    const statsBits = [];
+    if (g.activeGamar > 0) statsBits.push(`<span>🚛 <strong>${g.activeGamar}</strong> gám${g.activeGamar === 1 ? 'ur' : 'ar'}</span>`);
+    if (g.activeKor > 0) statsBits.push(`<span>🛢 <strong>${g.activeKor}</strong> ${g.activeKor === 1 ? 'kar' : 'kör'}</span>`);
+    if (statsBits.length === 0) statsBits.push(`<span style="color:var(--green);">✓ Ekkert úti</span>`);
+    return `<div class="fyr-card">
+      <div class="fyr-header" onclick="toggleFyrCard(${i})">
+        <div class="fyr-name">${escHtml(g.company)}</div>
+        <div class="fyr-stats">
+          ${statsBits.join('')}
+          <span class="fyr-caret" id="fyr-caret-${i}">▾</span>
+        </div>
+      </div>
+      <div class="fyr-body" id="fyr-body-${i}" hidden>
+        ${outSection}
+        ${historyBlock}
+      </div>
+    </div>`;
+  }
+
+  window.toggleFyrCard = function(i) {
+    const body = document.getElementById('fyr-body-' + i);
+    const caret = document.getElementById('fyr-caret-' + i);
+    if (!body) return;
+    body.hidden = !body.hidden;
+    if (caret) caret.textContent = body.hidden ? '▾' : '▴';
+  };
+  window.showMoreFyr = function(i) {
+    const full = document.getElementById('fyr-full-' + i);
+    const moreWrap = document.getElementById('fyr-more-' + i);
+    if (full) full.hidden = false;
+    if (moreWrap) moreWrap.style.display = 'none';
   };
 
   function updateRequestsBadge() {
@@ -1402,6 +1861,7 @@
         </div>
         ${row2}
         <div class="container-actions">
+          <button class="btn btn-outline btn-sm" onclick="openAuditLog('kar', '${escHtml(k.id).replace(/'/g, "\\'")}')">📖 Saga</button>
           <button class="btn btn-outline btn-sm" onclick="editKar('${escHtml(k._key).replace(/'/g, "\\'")}')">Breyta</button>
           <button class="btn btn-red btn-sm" onclick="deleteKar('${escHtml(k._key).replace(/'/g, "\\'")}')">Eyða</button>
         </div>
@@ -1556,6 +2016,120 @@
     panelEl.innerHTML = `<div class="billing-panel-header">📋 Gámaskjal — bíður skráningar (${items.length})</div>${cards}`;
   }
 
+  // ── GÁMASKJAL — flat rental history table ─────────────────────────────────
+  // Data model: each row is one rental event (either "úti" or "kom heim").
+  // Sourced from every job.rentalSummaries entry across all beiðnir (including archived).
+  window.switchGamarSubTab = function(which) {
+    document.getElementById('sub-tab-current').classList.toggle('active', which === 'current');
+    document.getElementById('sub-tab-log').classList.toggle('active', which === 'log');
+    document.getElementById('gamar-sub-current').style.display = which === 'current' ? 'block' : 'none';
+    document.getElementById('gamar-sub-log').style.display = which === 'log' ? 'block' : 'none';
+    if (which === 'log') renderGamaskjal();
+  };
+
+  function collectAllRentalRows() {
+    // For each job with rentalSummaries: emit rows. For "start" summaries without a matching "end"
+    // in the same job, we mark them "enn úti" and compute days-from-placed to today.
+    const rows = [];
+    const todayMs = Date.now();
+    for (const job of appData.jobs) {
+      if (!job.rentalSummaries || job.rentalSummaries.length === 0) continue;
+      for (const s of job.rentalSummaries) {
+        const isKar = isKarJobType(s.jobType || job.jobType);
+        const stillOut = s.type === 'start';
+        // Action label — is this a delivery (sett út) or pickup (sótt heim)?
+        const action = stillOut ? 'settur' : 'sottur';
+        const row = {
+          jobId: job.id, jobSeq: job.seq,
+          isKar,
+          containerId: s.containerId,
+          company: s.company || '',
+          where: s.where || '',
+          efni: s.efni || '', efniLabel: s.efniLabel || '',
+          placedAt: s.placedAt || null,
+          returnedAt: stillOut ? null : (s.returnedAt || null),
+          stillOut,
+          action, // 'settur' = fór út, 'sottur' = kom heim
+          days: stillOut
+            ? (s.placedAt ? Math.max(0, Math.floor((todayMs - new Date(s.placedAt + 'T00:00:00').getTime()) / 86400000)) : 0)
+            : (s.days || 0),
+          jobType: s.jobType || job.jobType
+        };
+        rows.push(row);
+      }
+    }
+    // Newest activity first
+    rows.sort((a, b) => (b.returnedAt || b.placedAt || '').localeCompare(a.returnedAt || a.placedAt || ''));
+    return rows;
+  }
+
+  window.renderGamaskjal = function() {
+    const wrap = document.getElementById('gamaskjal-table-wrap');
+    const sumEl = document.getElementById('gamaskjal-summary');
+    if (!wrap) return;
+    const q = (document.getElementById('gamaskjal-search')?.value || '').trim().toLowerCase();
+    let rows = collectAllRentalRows();
+    if (q) {
+      rows = rows.filter(r => {
+        const blob = [r.containerId, r.company, r.where, r.efni, r.efniLabel].filter(Boolean).join(' ').toLowerCase();
+        return blob.includes(q);
+      });
+    }
+    const total = rows.length;
+    const stillOut = rows.filter(r => r.stillOut).length;
+    const returned = total - stillOut;
+    sumEl.innerHTML = `<strong>${total}</strong> útleigur alls · <strong style="color:var(--rust);">${stillOut}</strong> enn úti · <strong style="color:var(--green);">${returned}</strong> skilaðir`;
+    if (rows.length === 0) {
+      wrap.innerHTML = `<div class="empty-state"><div class="icon">📋</div>${q ? 'Engar færslur passa við leitina' : 'Engar útleigufærslur enn'}</div>`;
+      return;
+    }
+    const efniLbl = (r) => r.efni === 'annad' ? (r.efniLabel || 'Annað') : (efniLabels[r.efni] || '—');
+    wrap.innerHTML = `<div class="gamaskjal-table-wrap"><table class="gamaskjal-table">
+      <thead><tr>
+        <th>Númer</th>
+        <th>Fyrirtæki</th>
+        <th>Staðsetning</th>
+        <th>Efni</th>
+        <th>Sett út</th>
+        <th>Sótt til baka</th>
+        <th style="text-align:right;">Dagar</th>
+      </tr></thead>
+      <tbody>${rows.map(r => `<tr>
+        <td class="gs-num ${r.isKar ? 'gs-kar' : ''}">${r.isKar ? '🛢' : '🚛'} ${escHtml(r.containerId)}</td>
+        <td>${escHtml(r.company) || '—'}</td>
+        <td>${escHtml(r.where) || '—'}</td>
+        <td>${escHtml(efniLbl(r))}</td>
+        <td>${r.placedAt ? fmtIcelandicDate(r.placedAt) : '—'}</td>
+        <td>${r.stillOut ? `<span class="gs-out">Enn úti</span>` : (r.returnedAt ? fmtIcelandicDate(r.returnedAt) : '—')}</td>
+        <td class="gs-days">${r.days} ${r.stillOut ? '· enn' : ''}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  };
+
+  window.copyGamaskjalToClipboard = function() {
+    const rows = collectAllRentalRows();
+    const efniLbl = (r) => r.efni === 'annad' ? (r.efniLabel || 'Annað') : (efniLabels[r.efni] || '');
+    const header = ['Númer','Tegund','Fyrirtæki','Staðsetning','Efni','Sett út','Sótt til baka','Dagar'].join('\t');
+    const lines = rows.map(r => [
+      r.containerId,
+      r.isKar ? 'Kar' : 'Gámur',
+      r.company || '',
+      r.where || '',
+      efniLbl(r),
+      r.placedAt ? r.placedAt.split('-').reverse().join('.') : '',
+      r.stillOut ? '' : (r.returnedAt ? r.returnedAt.split('-').reverse().join('.') : ''),
+      String(r.days)
+    ].join('\t'));
+    const text = header + '\n' + lines.join('\n');
+    navigator.clipboard.writeText(text).then(() => showToast(`Afritað ${rows.length} færslur ✓`)).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      showToast(`Afritað ${rows.length} færslur ✓`);
+    });
+  };
+
   function renderUtleiga() {
     const listEl = document.getElementById('utleiga-list');
     const sumEl = document.getElementById('utleiga-summary');
@@ -1655,6 +2229,7 @@
         </div>
         ${row2}
         <div class="container-actions">
+          <button class="btn btn-outline btn-sm" onclick="openAuditLog('container', '${escHtml(c.id).replace(/'/g, "\\'")}')">📖 Saga</button>
           <button class="btn btn-outline btn-sm" onclick="editContainer('${escHtml(c._key).replace(/'/g, "\\'")}')">Breyta</button>
           <button class="btn btn-red btn-sm" onclick="deleteContainer('${escHtml(c._key).replace(/'/g, "\\'")}')">Eyða</button>
         </div>
@@ -2061,7 +2636,7 @@
       const actions = twinUnresolved
         ? `<div class="rental-saved" style="color:#8a5a2b;">Veldu tvíburagám hér að ofan áður en fært er í ${logName}</div>`
         : anyNotSaved
-        ? `<div class="rental-actions"><button class="btn btn-green btn-sm" onclick="rentalVista('${job.id}')">📋 Færa í ${logName} og geymslu</button></div>`
+        ? `<div class="rental-actions"><button class="btn btn-green btn-sm" onclick="rentalVistaConfirm('${job.id}')">📋 Færa í ${logName} og geymslu</button></div>`
         : `<div class="rental-saved">✓ Fært í ${logName} — sjá ${registerName}</div>`;
       html += `<div class="rental-summary"><div class="rental-summary-title">Útleigusaga</div>${items}${actions}</div>`;
     }
@@ -2091,6 +2666,235 @@
       flash();
     });
   };
+
+  // ── VIKULEG STAÐFESTING (RECONCILIATION) ──────────────────────────────────
+  // Every Tuesday a subtle banner prompts the director to verify each úti gám/kar
+  // is still where the app thinks it is. Confirmations write to lastConfirmedAt
+  // (per container/kar) so we don't re-prompt for a week.
+  function isTuesday() { return new Date().getDay() === 2; }
+  function daysSinceConfirm(item) {
+    if (!item.lastConfirmedAt) return 999;
+    return Math.floor((Date.now() - new Date(item.lastConfirmedAt).getTime()) / 86400000);
+  }
+  function unconfirmedUti() {
+    // Gámar/kör úti sem hafa ekki verið staðfest í > 7 daga
+    const out = [];
+    for (const c of appData.containers) {
+      if (c.status === 'utleigu' && daysSinceConfirm(c) >= 7) out.push({ type: 'container', item: c });
+    }
+    for (const k of appData.kars) {
+      if (k.status === 'utleigu' && daysSinceConfirm(k) >= 7) out.push({ type: 'kar', item: k });
+    }
+    return out;
+  }
+  function updateReconcileBanner() {
+    const banner = document.getElementById('reconcile-banner');
+    if (!banner) return;
+    if (!isTuesday()) { banner.style.display = 'none'; return; }
+    const items = unconfirmedUti();
+    if (items.length === 0) { banner.style.display = 'none'; return; }
+    banner.style.display = 'flex';
+    document.getElementById('reconcile-banner-count').textContent = items.length;
+  }
+  window.openReconcileModal = function() {
+    renderReconcileList();
+    document.getElementById('reconcile-modal').style.display = 'flex';
+  };
+  window.closeReconcileModal = function() {
+    document.getElementById('reconcile-modal').style.display = 'none';
+    updateReconcileBanner();
+  };
+  function renderReconcileList() {
+    const listEl = document.getElementById('reconcile-list');
+    const items = unconfirmedUti().sort((a, b) => {
+      const dA = a.item.placedAt || '';
+      const dB = b.item.placedAt || '';
+      return dA.localeCompare(dB); // oldest first
+    });
+    if (items.length === 0) {
+      listEl.innerHTML = `<div style="padding:1rem;text-align:center;color:var(--green);font-weight:700;">✓ Allt komið í lag</div>`;
+      return;
+    }
+    listEl.innerHTML = items.map(({ type, item }) => {
+      const isKar = type === 'kar';
+      const icon = isKar ? '🛢' : '🚛';
+      const unit = isKar ? 'Kar' : 'Gámur';
+      const wherePart = item.company && item.where ? `${escHtml(item.company)} (${escHtml(item.where)})` : escHtml(item.company || item.where || '(óþekkt)');
+      const placedFmt = item.placedAt ? fmtIcelandicDate(item.placedAt) : '—';
+      const days = item.placedAt ? Math.max(0, Math.floor((Date.now() - new Date(item.placedAt + 'T00:00:00').getTime()) / 86400000)) : 0;
+      const key = escHtml(item._key).replace(/'/g, "\\'");
+      return `<div class="reconcile-row" id="reconcile-row-${type}-${key}">
+        <div class="reconcile-row-info">
+          <div class="reconcile-row-num">${icon} ${unit} #${escHtml(item.id)}</div>
+          <div class="reconcile-row-detail">Hjá <strong>${wherePart}</strong> síðan ${placedFmt} — ${days} dagar</div>
+        </div>
+        <button class="btn btn-green btn-sm" onclick="confirmStillOut('${type}', '${key}')">✓ Staðfest ennþá</button>
+        <button class="btn btn-outline btn-sm" onclick="reconcileEditItem('${type}', '${key}')">✏ Breyta stöðu</button>
+      </div>`;
+    }).join('');
+  }
+  window.confirmStillOut = async function(type, key) {
+    const now = new Date().toISOString();
+    if (type === 'container') {
+      const c = appData.containers.find(x => x._key === key);
+      if (!c) return;
+      await fsSetContainer({ ...c, lastConfirmedAt: now });
+    } else {
+      const k = appData.kars.find(x => x._key === key);
+      if (!k) return;
+      await fsSetKar({ ...k, lastConfirmedAt: now });
+    }
+    // Grey out the row locally for immediate feedback
+    const row = document.getElementById(`reconcile-row-${type}-${key}`);
+    if (row) row.classList.add('done');
+    setTimeout(() => renderReconcileList(), 400);
+  };
+  window.reconcileEditItem = function(type, key) {
+    closeReconcileModal();
+    if (type === 'container') editContainer(key);
+    else editKar(key);
+  };
+
+  // Audit log viewer — fetches log entries for a specific target
+  window.openAuditLog = async function(targetType, targetId) {
+    const titleEl = document.getElementById('audit-log-title');
+    const bodyEl = document.getElementById('audit-log-body');
+    const noun = targetType === 'kar' ? 'Kar' : (targetType === 'container' ? 'Gámur' : 'Beiðni');
+    titleEl.textContent = `📖 Saga — ${noun} #${targetId}`;
+    bodyEl.innerHTML = `<div style="padding:1rem;color:var(--muted);text-align:center;">Hleð…</div>`;
+    document.getElementById('audit-log-modal').style.display = 'flex';
+    try {
+      // 1-year cutoff (client-side filter — Firestore TTL requires setup)
+      const cutoffMs = Date.now() - 365 * 24 * 60 * 60 * 1000;
+      const q = query(collection(db,'auditLog'), where('targetType','==',targetType), where('targetId','==',targetId), orderBy('ts','desc'));
+      const snap = await getDocs(q);
+      const entries = snap.docs
+        .map(d => d.data())
+        .filter(e => new Date(e.ts).getTime() >= cutoffMs);
+      if (entries.length === 0) {
+        bodyEl.innerHTML = `<div style="padding:1rem;color:var(--muted);text-align:center;">Engar færslur enn</div>`;
+        return;
+      }
+      bodyEl.innerHTML = entries.map(e => auditEntryHtml(e)).join('');
+    } catch (err) {
+      bodyEl.innerHTML = `<div style="padding:1rem;color:var(--red);">Villa við að sækja sögu: ${escHtml(String(err.message || err))}</div>`;
+    }
+  };
+  window.closeAuditLog = function() {
+    document.getElementById('audit-log-modal').style.display = 'none';
+  };
+  function auditEntryHtml(e) {
+    const dateStr = e.ts ? new Date(e.ts).toLocaleString('is-IS', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+    const actionLabels = {
+      container_add: '➕ Bætt við í Gámar',
+      container_start_rental: '🚛 Fór úr HEIMA → ÚTI',
+      container_end_rental: '🏠 Kom til baka ÚTI → HEIMA',
+      container_update: '✏ Uppfært (fyrirtæki/staðsetning)',
+      container_delete: '🗑 Eytt úr kerfinu',
+      kar_add: '➕ Bætt við í Kör',
+      kar_start_rental: '🛢 Fór úr HEIMA → ÚTI',
+      kar_end_rental: '🏠 Kom til baka ÚTI → HEIMA',
+      kar_update: '✏ Uppfært (fyrirtæki/staðsetning)',
+      kar_delete: '🗑 Eytt úr kerfinu',
+      beidni_created: '📝 Beiðni búin til',
+      beidni_status_change: '🔄 Staða beiðni breytt',
+      beidni_delete: '🗑 Beiðni eytt'
+    };
+    const label = actionLabels[e.action] || e.action;
+    const detailBits = [];
+    if (e.beforeStatus && e.afterStatus && e.beforeStatus !== e.afterStatus) detailBits.push(`${e.beforeStatus} → <strong>${e.afterStatus}</strong>`);
+    if (e.company) detailBits.push(`Fyrirtæki: <strong>${escHtml(e.company)}</strong>`);
+    if (e.where) detailBits.push(`Staðsetning: <strong>${escHtml(e.where)}</strong>`);
+    if (e.placedAt) detailBits.push(`Sett út: ${fmtIcelandicDate(e.placedAt)}`);
+    if (e.jobId) detailBits.push(`Beiðni #${escHtml(String(e.jobId).slice(-4))}`);
+    return `<div style="padding:0.65rem 0.85rem;border-bottom:1px solid var(--mid);">
+      <div style="font-weight:800;font-size:0.92rem;color:var(--ink);">${label}</div>
+      ${detailBits.length ? `<div style="font-size:0.82rem;color:var(--muted);margin-top:0.2rem;">${detailBits.join(' · ')}</div>` : ''}
+      <div style="font-size:0.75rem;color:var(--muted);margin-top:0.2rem;opacity:0.75;">${dateStr}</div>
+    </div>`;
+  }
+
+  // Show a detailed confirmation of exactly what "Færa í gámaskjal og geymslu" will do
+  window.rentalVistaConfirm = function(jobId) {
+    const job = appData.jobs.find(j => j.id === jobId);
+    if (!job) return;
+    const isKar = isKarJobType(job.jobType);
+    const uLbl = unitLabel(job.jobType);
+    const logName = isKar ? 'karskjal' : 'gámaskjal';
+    const seq = job.seq ? '#' + job.seq : '#' + jobId.slice(-4);
+    // Merge in any backfilled summaries — this is what will actually be filed
+    const merged = [...(job.rentalSummaries || []), ...backfillStartSummaries(job)];
+    const toFile = merged.filter(s => !s.inBillingPanel);
+    const rows = toFile.map((s, i) => {
+      const isStart = s.type === 'start';
+      const placedFmt = s.placedAt ? fmtIcelandicDate(s.placedAt) : '—';
+      const returnedFmt = s.returnedAt ? fmtIcelandicDate(s.returnedAt) : '';
+      const wherePart = s.company && s.where ? `${escHtml(s.company)} (${escHtml(s.where)})` : escHtml(s.company || s.where || '(óþekkt)');
+      const efniText = s.efni === 'annad' ? (s.efniLabel || 'Annað') : (efniLabels[s.efni] || '');
+      const suLblLower = unitLabelLower(s.jobType || job.jobType);
+      const suLbl = unitLabel(s.jobType || job.jobType);
+      // Sentence-style: "Gám #42 var hjá Marel (Garðabær) í 7 daga — settur ..., sóttur ..."
+      let sentence;
+      if (isStart) {
+        sentence = `${suLbl} #${escHtml(s.containerId)} fer út til <strong>${wherePart}</strong>, settur <strong>${placedFmt}</strong> — enn úti.`;
+      } else {
+        sentence = `${suLbl} #${escHtml(s.containerId)} var hjá <strong>${wherePart}</strong> í <strong>${daysLabel(s.days)}</strong> — settur ${placedFmt}, sóttur <strong>${returnedFmt}</strong>.`;
+      }
+      const efniLine = efniText ? `<div style="font-size:0.83rem;color:var(--muted);margin-top:0.15rem;">Efni: ${escHtml(efniText)}</div>` : '';
+      return `<div style="margin-top:0.65rem;padding:0.65rem 0.85rem;background:var(--warm);border-left:3px solid var(--rust);border-radius:6px;">
+        <div style="font-weight:800;font-size:0.85rem;color:var(--rust);margin-bottom:0.35rem;">${i + 1}. Færa ${suLblLower} #${escHtml(s.containerId)} í ${logName}</div>
+        <div style="font-size:0.9rem;line-height:1.55;color:var(--ink);">${sentence}</div>
+        ${efniLine}
+      </div>`;
+    }).join('');
+    let body = '';
+    if (toFile.length === 0) {
+      body = `<div style="padding:0.75rem;background:var(--warm);border-radius:6px;color:var(--muted);">Ekkert í útleigusögu þessarar beiðni til að færa. Beiðnin verður bara færð í geymslu.</div>`;
+    } else {
+      body = `<div style="font-weight:800;font-size:0.82rem;color:var(--rust);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.35rem;">📋 ${logName} — ${toFile.length} færsla${toFile.length !== 1 ? 'r' : ''}</div>`;
+      body += rows;
+    }
+    body += `<div style="margin-top:1.2rem;padding:0.6rem 0.8rem;background:var(--warm);border-left:3px solid var(--muted);border-radius:6px;">
+      <div style="font-weight:800;margin-bottom:0.2rem;">📁 Beiðnin sjálf</div>
+      <div style="font-size:0.88rem;color:var(--ink);">Beiðni ${seq} færist úr Beiðnir → <strong>Geymsla</strong></div>
+    </div>`;
+    // Dirty warning gets its own callout
+    const hasDirty = (job.rentalWarnings || []).some(w => w.includes('inniheldur texta'));
+    if (hasDirty && !isKar) {
+      body = `<div style="padding:0.7rem 0.9rem;background:#fee5e0;border:1.5px solid var(--red);border-radius:8px;color:var(--red);font-size:0.88rem;margin-bottom:0.85rem;">
+        ⚠ Gámanúmer þessa verkefnis er ekki hreint — það hefur texta og er ekki tengt raunverulegum gám í Gámar alls.<br>
+        Ef þú staðfestir núna: innheimtuspjald birtist eins og venjulega, EN gámaskráningin uppfærist EKKI sjálfkrafa.
+      </div>` + body;
+    }
+    document.getElementById('rvc-title').textContent = `Beiðni ${seq} — staðfesta þessar aðgerðir?`;
+    document.getElementById('rvc-body').innerHTML = body;
+    document.getElementById('rvc-confirm-btn').onclick = async () => {
+      closeRentalVistaConfirm();
+      await rentalVistaExec(jobId);
+    };
+    document.getElementById('rental-vista-confirm-modal').style.display = 'flex';
+  };
+  window.closeRentalVistaConfirm = function() {
+    document.getElementById('rental-vista-confirm-modal').style.display = 'none';
+  };
+
+  // Original rental filing logic — now called only after director confirms
+  async function rentalVistaExec(jobId) {
+    const job = appData.jobs.find(j => j.id === jobId);
+    if (!job) return;
+    const merged = [...(job.rentalSummaries || []), ...backfillStartSummaries(job)];
+    const updated = {
+      ...job,
+      rentalSummaries: merged.map(s => ({ ...s, inBillingPanel: true, jobId })),
+      status: 'archived',
+      archivedAt: new Date().toISOString()
+    };
+    await fsSetJob(updated);
+    const logName = isKarJobType(job.jobType) ? 'karskjal' : 'gámaskjal';
+    const hasDirty = (job.rentalWarnings || []).some(w => w.includes('inniheldur texta'));
+    const regName = isKarJobType(job.jobType) ? 'karskráning' : 'gámaskráning';
+    showToast(hasDirty ? `⚠ Fært — en ${regName} ekki uppfærð` : `Fært í ${logName} og geymslu ✓`);
+  }
 
   window.rentalVista = async function(jobId) {
     const job = appData.jobs.find(j => j.id === jobId);
@@ -2425,6 +3229,61 @@
 
   const driverLabelMap = {};
 
+  // Multi-toggle for jobType: allow up to 2 selected. "Annað" forces single-select.
+  window.selectJobType = function(btn, value) {
+    const group = document.getElementById('job-type-group');
+    const selected = [...group.querySelectorAll('.option-btn.selected')];
+    const isSelected = btn.classList.contains('selected');
+    if (isSelected) {
+      // Toggle off
+      btn.classList.remove('selected');
+      btn.dataset.value = '';
+    } else if (value === 'annad-type') {
+      // "Annað" is exclusive
+      selected.forEach(b => { b.classList.remove('selected'); b.dataset.value = ''; });
+      btn.classList.add('selected');
+      btn.dataset.value = value;
+    } else {
+      // Deselect Annað if picked
+      const annadBtn = selected.find(b => b.dataset.value === 'annad-type');
+      if (annadBtn) { annadBtn.classList.remove('selected'); annadBtn.dataset.value = ''; }
+      const nonAnnadSelected = selected.filter(b => b.dataset.value !== 'annad-type');
+      if (nonAnnadSelected.length >= 2) {
+        // Replace the oldest (first in DOM order)
+        const oldest = nonAnnadSelected[0];
+        oldest.classList.remove('selected');
+        oldest.dataset.value = '';
+      }
+      btn.classList.add('selected');
+      btn.dataset.value = value;
+    }
+    // Show/hide the "Annað" text input
+    const annadNowSelected = group.querySelector('.option-btn.selected[data-value="annad-type"]');
+    document.getElementById('job-type-other-wrap').style.display = annadNowSelected ? 'block' : 'none';
+  };
+
+  // Multi-toggle for material: allow Járn + Timbur together. "Annað" is exclusive.
+  window.selectMaterial = function(btn, value) {
+    const group = document.getElementById('job-material-group');
+    const selected = [...group.querySelectorAll('.option-btn.selected')];
+    const isSelected = btn.classList.contains('selected');
+    if (isSelected) {
+      btn.classList.remove('selected');
+      btn.dataset.value = '';
+    } else if (value === 'annad') {
+      selected.forEach(b => { b.classList.remove('selected'); b.dataset.value = ''; });
+      btn.classList.add('selected');
+      btn.dataset.value = value;
+    } else {
+      const annadBtn = selected.find(b => b.dataset.value === 'annad');
+      if (annadBtn) { annadBtn.classList.remove('selected'); annadBtn.dataset.value = ''; }
+      btn.classList.add('selected');
+      btn.dataset.value = value;
+    }
+    const annadNowSelected = group.querySelector('.option-btn.selected[data-value="annad"]');
+    document.getElementById('job-material-other-wrap').style.display = annadNowSelected ? 'block' : 'none';
+  };
+
   window.selectOption = function(groupId, btn, value, label) {
     document.querySelectorAll(`#${groupId} .option-btn`).forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
@@ -2450,8 +3309,15 @@
   // ── FORM ───────────────────────────────────────────────────────────────────
 
   function collectFormData() {
-    const jobType = getSelected('job-type-group');
-    const material = getSelected('job-material-group');
+    // Multi-select jobType — up to 2 in DOM order. First is primary, second is optional secondary.
+    const selectedJobBtns = [...document.querySelectorAll('#job-type-group .option-btn.selected')];
+    const jobTypes = selectedJobBtns.map(b => b.dataset.value).filter(Boolean);
+    const jobType = jobTypes[0] || '';
+    const jobType2 = jobTypes[1] || '';
+    const selectedMatBtns = [...document.querySelectorAll('#job-material-group .option-btn.selected')];
+    const materials = selectedMatBtns.map(b => b.dataset.value).filter(Boolean);
+    const material = materials[0] || '';
+    const material2 = materials[1] || '';
     const equipment = getSelected('job-equipment-group');
     const driver = getSelected('job-driver-group');
     const d = getData();
@@ -2504,8 +3370,10 @@
       where: document.getElementById('job-where').value.trim(),
       phone: document.getElementById('job-phone').value.trim(),
       contact: document.getElementById('job-contact').value.trim(),
-      jobType, jobTypeLabel: jobTypeLabels[jobType] || '',
-      material, materialLabel: materialLabels[material] || '',
+      jobType, jobTypeLabel: [jobTypeLabels[jobType], jobType2 ? jobTypeLabels[jobType2] : ''].filter(Boolean).join(' + '),
+      jobType2,
+      material, materialLabel: [materialLabels[material], material2 ? materialLabels[material2] : ''].filter(Boolean).join(' + '),
+      material2,
       equipment, equipmentLabel: equipmentLabels[equipment] || '',
       driver, driverLabel: driver === 'all' ? 'Allir bílstjórar' : (approvedDriver ? approvedDriver.name : (driverLabelMap[driver] || driver)),
       notes: document.getElementById('job-notes').value.trim(),
@@ -2560,7 +3428,7 @@
     document.getElementById('job-priority').checked = false;
     document.getElementById('job-date').value = todayISO();
     ['job-type-group','job-material-group','job-equipment-group','job-driver-group'].forEach(g =>
-      document.querySelectorAll(`#${g} .option-btn`).forEach(b => b.classList.remove('selected'))
+      document.querySelectorAll(`#${g} .option-btn`).forEach(b => { b.classList.remove('selected'); b.dataset.value = ''; })
     );
     ['job-type-other-wrap','job-material-other-wrap','job-equipment-other-wrap','edit-gamanumer-wrap','edit-gamanumer-settur-wrap'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
     clearImage();
@@ -2579,11 +3447,22 @@
     setVal('job-phone', job.phone); setVal('job-contact', job.contact); setVal('job-notes', job.notes);
     document.getElementById('job-priority').checked = !!job.priority;
     const restoreOption = (groupId, value, wrapId, inputId, label) => {
-      document.querySelectorAll(`#${groupId} .option-btn`).forEach(b => { if (b.dataset.value === value) b.classList.add('selected'); });
+      // Match by extracting value from onclick attribute (buttons don't have dataset.value pre-set)
+      document.querySelectorAll(`#${groupId} .option-btn`).forEach(b => {
+        const onclick = b.getAttribute('onclick') || '';
+        const m = onclick.match(/'([^']+)'\s*\)?\s*$/);
+        const btnVal = b.dataset.value || (m ? m[1] : '');
+        if (btnVal === value) {
+          b.classList.add('selected');
+          b.dataset.value = value;
+        }
+      });
       if (wrapId && ['annad','annad-type','annad-equip'].includes(value)) { document.getElementById(wrapId).style.display = 'block'; setVal(inputId, label); }
     };
     restoreOption('job-type-group', job.jobType, 'job-type-other-wrap', 'job-type-other', job.jobTypeLabel);
+    if (job.jobType2) restoreOption('job-type-group', job.jobType2);
     restoreOption('job-material-group', job.material, 'job-material-other-wrap', 'job-material-other', job.materialLabel);
+    if (job.material2) restoreOption('job-material-group', job.material2);
     restoreOption('job-equipment-group', job.equipment, 'job-equipment-other-wrap', 'job-equipment-other', job.equipmentLabel);
     renderDriverButtons();
     setTimeout(() => {
@@ -3025,14 +3904,31 @@
     return `Eftir ${diff} daga`;
   }
 
+  // A gám/kar-beiðni that closed without a valid unit number is worth flagging
+  // — this is the #1 source of gámaskráning-drift the director wants tracked.
+  function jobNeedsNumberReview(job) {
+    if (job.status !== 'done' && job.status !== 'archived') return false;
+    const needsNumber = GAM_JOB_TYPES.includes(job.jobType) || KAR_JOB_TYPES.includes(job.jobType);
+    if (!needsNumber) return false;
+    const nums = [job.containerNumber, job.containerNumberTekinn, job.containerNumberSettur].filter(Boolean);
+    if (nums.length === 0) return true; // empty
+    if (nums.every(n => n === 'Nei')) return true; // driver marked Nei
+    // Dirty (has text and not tied to a real gám/kar in the registry)
+    const dirtyWarn = (job.rentalWarnings || []).some(w => w.includes('inniheldur texta'));
+    if (dirtyWarn) return true;
+    return false;
+  }
+
   function jobCard(job) {
     const statusLabel = { new: 'Bíður svars', accepted: 'Samþykkt', onway: 'Á leiðinni', delayed: 'Frestað', done: 'Lokið' };
     const statusBadge = { new: 'badge-new', accepted: 'badge-accepted', onway: 'badge-onway', delayed: 'badge-delayed', done: 'badge-done' };
     const driverTagClass = { new: 'driver-tag-waiting', accepted: 'driver-tag-accepted', onway: 'driver-tag-onway', delayed: 'driver-tag-delayed', done: 'driver-tag-done' };
     const driverTagText = { new: '⏳ Bíður svars', accepted: '✓ Samþykkt', onway: '🚛 Á leiðinni', delayed: '⏸ Frestað', done: '✓ Lokið' };
+    const needsReview = jobNeedsNumberReview(job);
     return `
-      <div class="job-card status-${job.status}${job.priority ? ' priority' : ''}">
+      <div class="job-card status-${job.status}${job.priority ? ' priority' : ''}${needsReview ? ' needs-review' : ''}">
         ${job.priority ? `<div class="priority-badge">🚨 Forgangur</div>` : ''}
+        ${needsReview ? `<div class="needs-review-badge">⚠ Vantar gámanúmer — passaðu að gámur sé rétt skráður</div>` : ''}
         <div class="job-header">
           <div>
             <div class="job-title">${job.jobType === 'annad-type' ? `<span class="annad-tag">${job.jobTypeLabel}</span>` : (job.jobTypeLabel || '—')}</div>
@@ -3121,7 +4017,6 @@
         <div class="job-actions">
           <button class="btn btn-outline btn-sm" onclick="editJob('${job.id}')">Breyta</button>
           ${(job.containerNumber || job.containerNumberTekinn || job.containerNumberSettur) && _fixingNumberJobId !== job.id ? `<button class="btn btn-outline btn-sm" onclick="showFixNumberForm('${job.id}')">✏ Lagfæra ${['taka-kar','losa-kar','skipta-kari','vantar-kar'].includes(job.jobType) ? 'karnúmer' : 'gámanúmer'}</button>` : ''}
-          <button class="btn btn-outline btn-sm" onclick="printJob('${job.id}')">🖨 Prenta</button>
           ${job.status === 'delayed' ? `<button class="btn btn-rust btn-sm" onclick="resumeDelayedJob('${job.id}')">▶ Setja verkefni af stað</button>` : ''}
           ${(job.status !== 'done' && job.status !== 'archived' && job.status !== 'draft' && _completingJobId !== job.id) ? `<button class="btn btn-green btn-sm" onclick="showCompleteForm('${job.id}')">✓ Klára núna</button>` : ''}
           ${job.status === 'done' ? `<button class="btn btn-ink btn-sm" onclick="reopenJob('${job.id}')">Opna aftur</button>${(!job.rentalSummaries || !job.rentalSummaries.some(s => !s.inBillingPanel)) ? `<button class="btn btn-outline btn-sm" onclick="archiveJob('${job.id}')" style="border-color:var(--muted);color:var(--muted);">🗄 Færa í geymslu</button>` : ''}` : ''}
@@ -3217,22 +4112,35 @@
   function renderCompleteForm(job) {
     const isSkipta = job.jobType === 'skipta' || job.jobType === 'skipta-kari';
     const isKar = ['taka-kar','losa-kar','skipta-kari','vantar-kar'].includes(job.jobType);
-    const unitLong = isKar ? 'Karnúmer' : 'Gámanúmer';
-    const neiHint = isKar ? `<div class="nei-hint">Ekkert númer á þessu kari? <button type="button" class="nei-btn" onclick="markNeiDir('complete-container-${job.id}')">Nei</button></div>` : '';
-    const neiHintT = isKar ? `<div class="nei-hint">Ekkert númer? <button type="button" class="nei-btn" onclick="markNeiDir('complete-tekinn-${job.id}')">Nei</button></div>` : '';
-    const neiHintS = isKar ? `<div class="nei-hint">Ekkert númer? <button type="button" class="nei-btn" onclick="markNeiDir('complete-settur-${job.id}')">Nei</button></div>` : '';
-    const inputs = isSkipta
-      ? `
-        <label class="complete-label">${unitLong} — Tekinn</label>
-        <input type="text" id="complete-tekinn-${job.id}" class="complete-input" placeholder="Númer á ${isKar ? 'kari' : 'gámi'} sem tekinn..." />
-        ${neiHintT}
-        <label class="complete-label" style="margin-top:0.75rem;">${unitLong} — Settur</label>
-        <input type="text" id="complete-settur-${job.id}" class="complete-input" placeholder="Númer á ${isKar ? 'kari' : 'gámi'} sem settur..." />
-        ${neiHintS}`
-      : `
-        <label class="complete-label">${unitLong}</label>
-        <input type="text" id="complete-container-${job.id}" class="complete-input" placeholder="Sláðu inn númer..." />
+    // Build one input block for a specific jobType (primary or secondary)
+    const buildInputs = (jobType, suffix) => {
+      const jSkipta = jobType === 'skipta' || jobType === 'skipta-kari';
+      const jKar = ['taka-kar','losa-kar','skipta-kari','vantar-kar'].includes(jobType);
+      const uLong = jKar ? 'Karnúmer' : 'Gámanúmer';
+      const cId = `complete-container${suffix}-${job.id}`;
+      const tId = `complete-tekinn${suffix}-${job.id}`;
+      const sId = `complete-settur${suffix}-${job.id}`;
+      const neiHint = jKar ? `<div class="nei-hint">Ekkert númer á þessu kari? <button type="button" class="nei-btn" onclick="markNeiDir('${cId}')">Nei</button></div>` : '';
+      const neiHintT = jKar ? `<div class="nei-hint">Ekkert númer? <button type="button" class="nei-btn" onclick="markNeiDir('${tId}')">Nei</button></div>` : '';
+      const neiHintS = jKar ? `<div class="nei-hint">Ekkert númer? <button type="button" class="nei-btn" onclick="markNeiDir('${sId}')">Nei</button></div>` : '';
+      if (jSkipta) {
+        return `<label class="complete-label">${uLong} — Tekinn</label>
+          <input type="text" id="${tId}" class="complete-input" placeholder="Númer á ${jKar ? 'kari' : 'gámi'} sem tekinn..." />
+          ${neiHintT}
+          <label class="complete-label" style="margin-top:0.75rem;">${uLong} — Settur</label>
+          <input type="text" id="${sId}" class="complete-input" placeholder="Númer á ${jKar ? 'kari' : 'gámi'} sem settur..." />
+          ${neiHintS}`;
+      }
+      return `<label class="complete-label">${uLong}</label>
+        <input type="text" id="${cId}" class="complete-input" placeholder="Sláðu inn númer..." />
         ${neiHint}`;
+    };
+    const jobTypeLabels = { sekja: 'Taka gám', losa: 'Losa gám', skipta: 'Skipta gám', fara: 'Vantar gám', 'taka-kar': 'Taka kar', 'losa-kar': 'Losa kar', 'skipta-kari': 'Skipta kari', 'vantar-kar': 'Vantar kar' };
+    let inputs = buildInputs(job.jobType, '');
+    if (job.jobType2) {
+      inputs += `<div class="mixed-section-divider" style="margin:1rem 0 0.6rem 0;">🔀 Auka-aðgerð: <strong>${jobTypeLabels[job.jobType2] || job.jobType2}</strong></div>`;
+      inputs += buildInputs(job.jobType2, '2');
+    }
     const extras = isKar ? [] : (_extrasMapDir[job.id] || []);
     const extrasHtml = extras.map(e => `
       <div class="extra-row-dir">
@@ -3730,22 +4638,42 @@
   window.completeJob = async function(id, isSkipta) {
     const job = getData().jobs.find(j => j.id === id);
     if (!job) return;
-    const isKarJob = ['taka-kar','losa-kar','skipta-kari','vantar-kar'].includes(job.jobType);
-    const unitName = isKarJob ? 'karnúmer' : 'gámanúmer';
     const updated = { ...job, status: 'done', completedAt: new Date().toISOString() };
     const note = (document.getElementById('complete-note-' + id) || { value: '' }).value.trim();
-    if (isSkipta) {
-      const tekinn = (document.getElementById('complete-tekinn-' + id) || { value: '' }).value.trim();
-      const settur = (document.getElementById('complete-settur-' + id) || { value: '' }).value.trim();
-      if (!tekinn || !settur) { showToast('Sláðu inn bæði ' + unitName); return; }
-      updated.containerNumberTekinn = tekinn;
-      updated.containerNumberSettur = settur;
-    } else {
-      const num = (document.getElementById('complete-container-' + id) || { value: '' }).value.trim();
-      if (!num) { showToast('Sláðu inn ' + unitName); return; }
-      updated.containerNumber = num;
+    // Collect one section's numbers. Suffix '' for primary, '2' for secondary.
+    const readSection = (jobType, suffix) => {
+      if (!jobType) return { fields: {}, error: null };
+      const jSkipta = jobType === 'skipta' || jobType === 'skipta-kari';
+      const jKar = ['taka-kar','losa-kar','skipta-kari','vantar-kar'].includes(jobType);
+      const uName = jKar ? 'karnúmer' : 'gámanúmer';
+      const label = suffix ? 'auka-aðgerð' : 'aðal-aðgerð';
+      const fields = {};
+      const fN = 'containerNumber' + suffix;
+      const fT = 'containerNumberTekinn' + suffix;
+      const fS = 'containerNumberSettur' + suffix;
+      if (jSkipta) {
+        const t = (document.getElementById(`complete-tekinn${suffix}-${id}`) || { value: '' }).value.trim();
+        const s = (document.getElementById(`complete-settur${suffix}-${id}`) || { value: '' }).value.trim();
+        if (!t || !s) return { fields, error: `Sláðu inn bæði ${uName} (${label})` };
+        fields[fT] = t; fields[fS] = s;
+      } else {
+        const n = (document.getElementById(`complete-container${suffix}-${id}`) || { value: '' }).value.trim();
+        if (!n) return { fields, error: `Sláðu inn ${uName} (${label})` };
+        fields[fN] = n;
+      }
+      return { fields, error: null };
+    };
+    const p = readSection(job.jobType, '');
+    if (p.error) { showToast(p.error); return; }
+    Object.assign(updated, p.fields);
+    if (job.jobType2) {
+      const s = readSection(job.jobType2, '2');
+      if (s.error) { showToast(s.error); return; }
+      Object.assign(updated, s.fields);
     }
     if (note) updated.completionNote = note;
+    const anyKar = isKarJobType(job.jobType) || isKarJobType(job.jobType2 || '');
+    const isKarJob = isKarJobType(job.jobType); // legacy — controls old aukagáma flow
     // Aukagáma — collect from director's state + read current input values
     if (!isKarJob && _extrasMapDir[id] && _extrasMapDir[id].length > 0) {
       const extras = [];
@@ -3767,8 +4695,28 @@
     const workDate = todayISO();
     updated.workDate = workDate;
     _completingJobId = null;
-    // Apply rental linking BEFORE saving the job so we can attach summaries
-    const result = await applyContainerRentalLogic(updated, workDate);
+    // Apply rental linking BEFORE saving. For mixed beiðnir, run for both types.
+    const runFor = async (jt, nums) => {
+      if (!jt) return null;
+      const j = { ...updated, jobType: jt, ...nums };
+      return await applyContainerRentalLogic(j, workDate);
+    };
+    const results = [];
+    const r1 = await runFor(updated.jobType, {}); // primary uses updated's own containerNumber fields
+    if (r1) results.push(r1);
+    if (updated.jobType2) {
+      const r2 = await runFor(updated.jobType2, {
+        containerNumber: updated.containerNumber2,
+        containerNumberTekinn: updated.containerNumberTekinn2,
+        containerNumberSettur: updated.containerNumberSettur2
+      });
+      if (r2) results.push(r2);
+    }
+    const result = results.length ? {
+      summaries: results.flatMap(r => r?.summaries || []),
+      warnings: results.flatMap(r => r?.warnings || []),
+      twinPending: results.flatMap(r => r?.twinPending || [])
+    } : null;
     if (result) {
       if (result.summaries.length) updated.rentalSummaries = result.summaries; else delete updated.rentalSummaries;
       if (result.warnings.length) updated.rentalWarnings = result.warnings; else delete updated.rentalWarnings;
@@ -4213,7 +5161,6 @@
           ${job.image ? `<img src="${job.image}" style="width:100%;border-radius:8px;margin-top:0.6rem;max-height:180px;object-fit:cover;" alt="Mynd" />` : ''}
           <div class="archive-actions">
             <button class="btn btn-outline btn-sm" onclick="unarchiveJob('${job.id}')">↩ Færa til baka í Lokið</button>
-            <button class="btn btn-outline btn-sm" onclick="printJob('${job.id}')">🖨 Prenta</button>
             <button class="btn btn-red btn-sm" onclick="deleteArchivedJob('${job.id}')">Eyða</button>
           </div>
         </div>`;

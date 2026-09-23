@@ -269,6 +269,8 @@
     .copy-btn:active { opacity: 0.7; }
 
     .container-input-wrap { margin-top: 1rem; }
+    .mixed-section-divider { margin-top: 1.2rem; padding: 0.55rem 0.85rem; background: rgba(196,98,26,0.08); border-left: 3px solid var(--rust); border-radius: 5px; font-size: 0.85rem; color: var(--rust); font-weight: 700; }
+    [data-theme="dark"] .mixed-section-divider { background: rgba(196,98,26,0.15); }
     .container-input-wrap label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
     .container-row { display: flex; gap: 0.5rem; }
     .container-row input {
@@ -772,6 +774,76 @@
     }
   }
 
+  // Collects the number values entered for one section (primary or secondary).
+  // Returns { fields: { containerNumber?, containerNumberTekinn?, containerNumberSettur?, ...suffix variants }, error }
+  function collectSectionNumbers(jobId, jobType, suffix) {
+    if (!jobType) return { fields: {}, error: null };
+    const isKar = ['taka-kar','losa-kar','skipta-kari','vantar-kar'].includes(jobType);
+    const isSkipta = jobType === 'skipta' || jobType === 'skipta-kari';
+    const unitName = isKar ? 'karnúmer' : 'gámanúmer';
+    const fields = {};
+    // Field-name suffix for secondary: containerNumber2, containerNumberTekinn2, containerNumberSettur2
+    const fNumber = 'containerNumber' + suffix;
+    const fTekinn = 'containerNumberTekinn' + suffix;
+    const fSettur = 'containerNumberSettur' + suffix;
+    if (isSkipta) {
+      const tekinn = (document.getElementById(`container-tekinn${suffix}-${jobId}`)||{value:''}).value.trim();
+      const settur = (document.getElementById(`container-settur${suffix}-${jobId}`)||{value:''}).value.trim();
+      if (!tekinn || !settur) return { fields, error: `Sláðu inn bæði ${unitName} (${suffix ? 'auka-aðgerð' : 'aðal-aðgerð'})` };
+      fields[fTekinn] = tekinn;
+      fields[fSettur] = settur;
+    } else {
+      const num = (document.getElementById(`container${suffix}-${jobId}`)||{value:''}).value.trim();
+      if (!num) return { fields, error: `Sláðu inn ${unitName} (${suffix ? 'auka-aðgerð' : 'aðal-aðgerð'})` };
+      fields[fNumber] = num;
+    }
+    return { fields, error: null };
+  }
+
+  // Builds one completion section (labels + number inputs + Nei hints)
+  // for a specific jobType. Used twice on mixed beiðnir (primary + secondary).
+  function renderCompletionSection(job, jobType, suffix, numbers) {
+    if (!jobType) return '';
+    const isKar = ['taka-kar','losa-kar','skipta-kari','vantar-kar'].includes(jobType);
+    const isSkipta = jobType === 'skipta' || jobType === 'skipta-kari';
+    const unit = isKar ? 'kari' : 'gámi';
+    const unitLong = isKar ? 'Karnúmer' : 'Gámanúmer';
+    let singleLabel = unitLong;
+    if (jobType === 'sekja' || jobType === 'taka-kar') singleLabel = `Númer á ${unit} sem þú ert að <span style="color:var(--rust);font-weight:800;">TAKA</span>`;
+    else if (jobType === 'fara' || jobType === 'vantar-kar') singleLabel = `Númer á ${unit} sem þú ert að <span style="color:var(--green);font-weight:800;">SETJA</span>`;
+    else if (jobType === 'losa' || jobType === 'losa-kar') singleLabel = `Númer á ${unit} (sami ${unit} tekinn og settur aftur)`;
+    const tekinnLabel = `Númer á ${unit} sem þú ert að <span style="color:var(--rust);font-weight:800;">TAKA</span>`;
+    const setturLabel = `Númer á ${unit} sem þú ert að <span style="color:var(--green);font-weight:800;">SETJA</span>`;
+    const idSingle = `container${suffix}-${job.id}`;
+    const idTekinn = `container-tekinn${suffix}-${job.id}`;
+    const idSettur = `container-settur${suffix}-${job.id}`;
+    const vSingle = numbers.containerNumber || '';
+    const vTekinn = numbers.containerNumberTekinn || '';
+    const vSettur = numbers.containerNumberSettur || '';
+    const neiHint = isKar ? `<div class="nei-hint">Ekkert númer á þessu kari? <button type="button" class="nei-btn" onclick="markNei('${idSingle}')">Nei</button></div>` : '';
+    const neiHintTekinn = isKar ? `<div class="nei-hint">Ekkert númer? <button type="button" class="nei-btn" onclick="markNei('${idTekinn}')">Nei</button></div>` : '';
+    const neiHintSettur = isKar ? `<div class="nei-hint">Ekkert númer? <button type="button" class="nei-btn" onclick="markNei('${idSettur}')">Nei</button></div>` : '';
+    if (isSkipta) {
+      return `<div class="container-input-wrap">
+        <label>${tekinnLabel}</label>
+        ${isKar ? karInputHtml(idTekinn, vTekinn) : `<input type="text" id="${idTekinn}" class="container-full-input" placeholder="Sláðu inn númer..." value="${vTekinn}" />`}
+        ${neiHintTekinn}
+        <label style="margin-top:0.5rem;display:block;">${setturLabel}</label>
+        <div class="container-row" style="margin-top:0.4rem;">
+          ${isKar ? karInputHtml(idSettur, vSettur) : `<input type="text" id="${idSettur}" placeholder="Sláðu inn númer..." value="${vSettur}" />`}
+        </div>
+        ${neiHintSettur}
+      </div>`;
+    }
+    return `<div class="container-input-wrap">
+      <label>${singleLabel}</label>
+      <div class="container-row">
+        ${isKar ? karInputHtml(idSingle, vSingle) : `<input type="text" id="${idSingle}" placeholder="Sláðu inn númer..." value="${vSingle}" />`}
+      </div>
+      ${neiHint}
+    </div>`;
+  }
+
   function jobCard(job) {
     const isAll = job.driver === 'all';
     const isPriority = !!job.priority;
@@ -841,9 +913,6 @@
           <button class="btn btn-mid btn-sm" onclick="showDelayForm('${job.id}')">⏸ Fresta</button>
         </div>`;
     } else if ((job.status === 'onway' && !isDelaying) || isFixingThis) {
-      const neiHint = isKar ? `<div class="nei-hint">Ekkert númer á þessu kari? <button type="button" class="nei-btn" onclick="markNei('container-${job.id}')">Nei</button></div>` : '';
-      const neiHintTekinn = isKar ? `<div class="nei-hint">Ekkert númer? <button type="button" class="nei-btn" onclick="markNei('container-tekinn-${job.id}')">Nei</button></div>` : '';
-      const neiHintSettur = isKar ? `<div class="nei-hint">Ekkert númer? <button type="button" class="nei-btn" onclick="markNei('container-settur-${job.id}')">Nei</button></div>` : '';
       // Auka-gámar/kör — driver can add unexpected units on-site
       const extras = _extrasMap[job.id] || [];
       const extrasHtml = extras.map(e => `
@@ -862,44 +931,29 @@
       const extraBtns = isFixingThis
         ? `<div style="margin-top:0.5rem;"><button class="btn btn-outline btn-sm" onclick="cancelFixDone()">Hætta við</button></div>`
         : `<div style="margin-top:0.5rem;"><button class="btn btn-mid btn-sm" onclick="showDelayForm('${job.id}')">⏸ Fresta</button></div>`;
-      if (isSkipta) {
-        actionBlock = `
-          <div class="container-input-wrap">
-            <label>${tekinnLabel}</label>
-            ${isKar ? karInputHtml(`container-tekinn-${job.id}`, job.containerNumberTekinn) : `<input type="text" id="container-tekinn-${job.id}" class="container-full-input" placeholder="Sláðu inn númer..." value="${job.containerNumberTekinn || ''}" />`}
-            ${neiHintTekinn}
-            <label style="margin-top:0.5rem;display:block;">${setturLabel}</label>
-            <div class="container-row" style="margin-top:0.4rem;">
-              ${isKar ? karInputHtml(`container-settur-${job.id}`, job.containerNumberSettur) : `<input type="text" id="container-settur-${job.id}" placeholder="Sláðu inn númer..." value="${job.containerNumberSettur || ''}" />`}
-            </div>
-            ${neiHintSettur}
-            ${extrasHtml}
-            ${addExtraBtn}
-            <details class="note-toggle"${noteVal ? ' open' : ''}>
-              <summary>Athugasemd <span class="note-toggle-hint">(valkvætt)</span><span class="note-arrow">▾</span></summary>
-              <textarea id="completion-note-${job.id}" class="container-full-input" rows="2" placeholder="Var eitthvað að? Skráðu það hér..." style="resize:none;margin-top:0.5rem;">${noteVal}</textarea>
-            </details>
-            <button class="btn btn-green" style="width:100%;margin-top:0.75rem;" onclick="${submitFn}">${submitLabel}</button>
-          </div>
-          ${extraBtns}`;
-      } else {
-        actionBlock = `
-          <div class="container-input-wrap">
-            <label>${singleLabel}</label>
-            <div class="container-row">
-              ${isKar ? karInputHtml(`container-${job.id}`, job.containerNumber) : `<input type="text" id="container-${job.id}" placeholder="Sláðu inn númer..." value="${job.containerNumber || ''}" />`}
-            </div>
-            ${neiHint}
-            ${extrasHtml}
-            ${addExtraBtn}
-            <details class="note-toggle"${noteVal ? ' open' : ''}>
-              <summary>Athugasemd <span class="note-toggle-hint">(valkvætt)</span><span class="note-arrow">▾</span></summary>
-              <textarea id="completion-note-${job.id}" class="container-full-input" rows="2" placeholder="Var eitthvað að? Skráðu það hér..." style="resize:none;margin-top:0.5rem;">${noteVal}</textarea>
-            </details>
-            <button class="btn btn-green" style="width:100%;margin-top:0.75rem;" onclick="${submitFn}">${submitLabel}</button>
-          </div>
-          ${extraBtns}`;
+      // Primary + optional secondary number sections (mixed beiðnir have jobType2)
+      const primaryNums = { containerNumber: job.containerNumber, containerNumberTekinn: job.containerNumberTekinn, containerNumberSettur: job.containerNumberSettur };
+      const primarySection = renderCompletionSection(job, job.jobType, '', primaryNums);
+      let secondarySection = '';
+      if (job.jobType2) {
+        const secondaryNums = { containerNumber: job.containerNumber2, containerNumberTekinn: job.containerNumberTekinn2, containerNumberSettur: job.containerNumberSettur2 };
+        const jobTypeLabels2 = { sekja: 'Taka gám', losa: 'Losa gám', skipta: 'Skipta gám', fara: 'Vantar gám', 'taka-kar': 'Taka kar', 'losa-kar': 'Losa kar', 'skipta-kari': 'Skipta kari', 'vantar-kar': 'Vantar kar' };
+        secondarySection = `<div class="mixed-section-divider">🔀 Auka-aðgerð: <strong>${jobTypeLabels2[job.jobType2] || job.jobType2}</strong></div>` +
+          renderCompletionSection(job, job.jobType2, '2', secondaryNums);
       }
+      actionBlock = `
+        ${primarySection}
+        ${secondarySection}
+        <div style="margin-top:1rem;">
+          ${extrasHtml}
+          ${addExtraBtn}
+          <details class="note-toggle"${noteVal ? ' open' : ''}>
+            <summary>Athugasemd <span class="note-toggle-hint">(valkvætt)</span><span class="note-arrow">▾</span></summary>
+            <textarea id="completion-note-${job.id}" class="container-full-input" rows="2" placeholder="Var eitthvað að? Skráðu það hér..." style="resize:none;margin-top:0.5rem;">${noteVal}</textarea>
+          </details>
+          <button class="btn btn-green" style="width:100%;margin-top:0.75rem;" onclick="${submitFn}">${submitLabel}</button>
+        </div>
+        ${extraBtns}`;
     } else if (job.status === 'done' && !isFixingThis) {
       const inGamaskjal = (job.rentalSummaries || []).some(s => s.inBillingPanel);
       if (inGamaskjal) {
@@ -1261,18 +1315,15 @@
     if (!job) return;
     const updated = { ...job, status: 'done', completedAt: new Date().toISOString() };
     const completionNote = (document.getElementById('completion-note-'+id)||{value:''}).value.trim();
-    const isKarJob = ['taka-kar','losa-kar','skipta-kari','vantar-kar'].includes(job.jobType);
-    const unitName = isKarJob ? 'karnúmer' : 'gámanúmer';
-    if (isSkipta) {
-      const tekinn = (document.getElementById('container-tekinn-'+id)||{value:''}).value.trim();
-      const settur = (document.getElementById('container-settur-'+id)||{value:''}).value.trim();
-      if (!tekinn || !settur) { showToast('Sláðu inn bæði ' + unitName); return; }
-      updated.containerNumberTekinn = tekinn;
-      updated.containerNumberSettur = settur;
-    } else {
-      const num = (document.getElementById('container-'+id)||{value:''}).value.trim();
-      if (!num) { showToast('Sláðu inn ' + unitName); return; }
-      updated.containerNumber = num;
+    // Collect PRIMARY jobType numbers
+    const collected = collectSectionNumbers(id, job.jobType, '');
+    if (collected.error) { showToast(collected.error); return; }
+    Object.assign(updated, collected.fields);
+    // Collect SECONDARY jobType numbers if this is a mixed beiðni
+    if (job.jobType2) {
+      const collected2 = collectSectionNumbers(id, job.jobType2, '2');
+      if (collected2.error) { showToast(collected2.error); return; }
+      Object.assign(updated, collected2.fields);
     }
     if (completionNote) updated.completionNote = completionNote;
     // Aukagáma — collect from state + read current input values
@@ -1296,19 +1347,34 @@
     // so rental length is based on the driver's actual pickup/placement day.
     const workDate = todayISO();
     updated.workDate = workDate;
-    // Apply rental linking before saving so summaries land on the job
-    const result = await applyContainerRentalLogic(updated, workDate);
-    if (result) {
-      if (result.summaries.length) updated.rentalSummaries = result.summaries;
-      if (result.warnings.length) updated.rentalWarnings = result.warnings;
-      if (result.twinPending && result.twinPending.length) updated.twinPending = result.twinPending;
-      updated.rentalProcessed = true;
+    // Apply rental linking before saving. For mixed beiðnir, run rental logic for both types.
+    const results = [];
+    const r1 = await applyContainerRentalLogic(updated, workDate);
+    if (r1) results.push(r1);
+    if (updated.jobType2) {
+      const jobForSecondary = {
+        ...updated,
+        jobType: updated.jobType2,
+        containerNumber: updated.containerNumber2,
+        containerNumberTekinn: updated.containerNumberTekinn2,
+        containerNumberSettur: updated.containerNumberSettur2
+      };
+      const r2 = await applyContainerRentalLogic(jobForSecondary, workDate);
+      if (r2) results.push(r2);
     }
+    const summaries = results.flatMap(r => r?.summaries || []);
+    const warnings = results.flatMap(r => r?.warnings || []);
+    const twinPending = results.flatMap(r => r?.twinPending || []);
+    if (summaries.length) updated.rentalSummaries = summaries;
+    if (warnings.length) updated.rentalWarnings = warnings;
+    if (twinPending.length) updated.twinPending = twinPending;
+    if (results.length) updated.rentalProcessed = true;
     // Clear local extras state since they're now saved
     delete _extrasMap[id];
     await fsSetJob(updated);
     window.switchTab('klarud');
-    showToast('Lokið! ' + (isKarJob ? 'Karnúmer' : 'Gámanúmer') + ' skráð ✓');
+    const anyKar = ['taka-kar','losa-kar','skipta-kari','vantar-kar'].includes(job.jobType) || ['taka-kar','losa-kar','skipta-kari','vantar-kar'].includes(job.jobType2 || '');
+    showToast('Lokið! ' + (anyKar ? 'Númer' : 'Gámanúmer') + ' skráð ✓');
   };
 
   // Reverse the rental state changes that the original markDone applied.
@@ -1385,19 +1451,15 @@
   window.saveFixDone = async function(id, isSkipta) {
     const job = appData.jobs.find(j => j.id === id);
     if (!job) return;
-    const isKarJob = ['taka-kar','losa-kar','skipta-kari','vantar-kar'].includes(job.jobType);
-    const unitName = isKarJob ? 'karnúmer' : 'gámanúmer';
     const updated = { ...job, status: 'done', updatedAt: new Date().toISOString() };
-    if (isSkipta) {
-      const tekinn = (document.getElementById('container-tekinn-'+id)||{value:''}).value.trim();
-      const settur = (document.getElementById('container-settur-'+id)||{value:''}).value.trim();
-      if (!tekinn || !settur) { showToast('Sláðu inn bæði ' + unitName); return; }
-      updated.containerNumberTekinn = tekinn;
-      updated.containerNumberSettur = settur;
-    } else {
-      const num = (document.getElementById('container-'+id)||{value:''}).value.trim();
-      if (!num) { showToast('Sláðu inn ' + unitName); return; }
-      updated.containerNumber = num;
+    // Collect primary + optional secondary numbers (same as markDone)
+    const collected = collectSectionNumbers(id, job.jobType, '');
+    if (collected.error) { showToast(collected.error); return; }
+    Object.assign(updated, collected.fields);
+    if (job.jobType2) {
+      const collected2 = collectSectionNumbers(id, job.jobType2, '2');
+      if (collected2.error) { showToast(collected2.error); return; }
+      Object.assign(updated, collected2.fields);
     }
     const completionNote = (document.getElementById('completion-note-'+id)||{value:''}).value.trim();
     if (completionNote) updated.completionNote = completionNote;
@@ -1421,18 +1483,32 @@
     } else {
       delete updated.extraContainers;
     }
-    // Reverse old rental changes, then re-apply with new data
+    // Reverse old rental changes, then re-apply with new data (primary + optional secondary)
     await reverseRentalLogic(job);
     delete updated.rentalSummaries;
     delete updated.rentalWarnings;
     delete updated.twinPending;
-    const result = await applyContainerRentalLogic(updated, updated.workDate);
-    if (result) {
-      if (result.summaries.length) updated.rentalSummaries = result.summaries;
-      if (result.warnings.length) updated.rentalWarnings = result.warnings;
-      if (result.twinPending && result.twinPending.length) updated.twinPending = result.twinPending;
-      updated.rentalProcessed = true;
+    const results = [];
+    const r1 = await applyContainerRentalLogic(updated, updated.workDate);
+    if (r1) results.push(r1);
+    if (updated.jobType2) {
+      const jobForSecondary = {
+        ...updated,
+        jobType: updated.jobType2,
+        containerNumber: updated.containerNumber2,
+        containerNumberTekinn: updated.containerNumberTekinn2,
+        containerNumberSettur: updated.containerNumberSettur2
+      };
+      const r2 = await applyContainerRentalLogic(jobForSecondary, updated.workDate);
+      if (r2) results.push(r2);
     }
+    const summaries = results.flatMap(r => r?.summaries || []);
+    const warnings = results.flatMap(r => r?.warnings || []);
+    const twinPending = results.flatMap(r => r?.twinPending || []);
+    if (summaries.length) updated.rentalSummaries = summaries;
+    if (warnings.length) updated.rentalWarnings = warnings;
+    if (twinPending.length) updated.twinPending = twinPending;
+    if (results.length) updated.rentalProcessed = true;
     _fixingDoneId = null;
     delete _extrasMap[id];
     await fsSetJob(updated);
