@@ -828,6 +828,16 @@
       <div id="requests-list"></div>
       <div class="section-heading">Samþykktir bílstjórar</div>
       <div id="approved-drivers-list"></div>
+
+      <div class="section-heading" style="margin-top:2rem;">🛡 Öryggisafrit</div>
+      <div class="form-card" style="margin-bottom:1rem;">
+        <p style="font-size:0.85rem;color:var(--muted);margin-bottom:0.75rem;">
+          Sæktu allt appið sem JSON-skjal — beiðnir, gámar, kör, útleigusaga og allt annað.
+          Geymdu skjalið einhversstaðar öruggu (t.d. Google Drive, tölvu). Mælt með einu sinni í mánuði.
+        </p>
+        <button class="btn btn-ink btn-sm" onclick="downloadBackup()">⬇ Sækja öryggisafrit</button>
+        <div id="backup-status" style="font-size:0.8rem;color:var(--muted);margin-top:0.5rem;"></div>
+      </div>
     </div>
 
   </main>
@@ -1151,8 +1161,11 @@
     if (old) fsWriteAudit({ action: 'kar_delete', targetType: 'kar', targetId: old.id, beforeStatus: old.status, beforeCompany: old.company || '', beforeWhere: old.where || '', jobId: auditCtx.jobId, note: auditCtx.note });
   }
   // Dismissed autocomplete suggestions — director × on a dropdown option
+  // expiresAt is set 1 year in the future so a Firestore TTL policy can auto-clean.
   async function fsSetDismissedSuggestion(key, combo) {
-    await setDoc(doc(db,'dismissedSuggestions', key), { ...combo, dismissedAt: new Date().toISOString() }).catch(fsErr('tillögu-eyðingu'));
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+    await setDoc(doc(db,'dismissedSuggestions', key), { ...combo, dismissedAt: now.toISOString(), expiresAt }).catch(fsErr('tillögu-eyðingu'));
   }
   async function fsDeleteDismissedSuggestion(key) {
     await deleteDoc(doc(db,'dismissedSuggestions', key)).catch(() => {});
@@ -1163,12 +1176,50 @@
   //   { ts, action, targetType: 'container'|'kar'|'beidni', targetId, jobId?, beforeStatus?, afterStatus?, company?, where?, note? }
   async function fsWriteAudit(entry) {
     try {
-      await addDoc(collection(db,'auditLog'), cleanObj({ ...entry, ts: new Date().toISOString() }));
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+      // expiresAt is a Firestore Timestamp field — a TTL policy on this field
+      // auto-deletes the doc when now > expiresAt (setup in Firebase console).
+      await addDoc(collection(db,'auditLog'), cleanObj({ ...entry, ts: now.toISOString(), expiresAt }));
     } catch (e) {
       // Never block a real action because audit failed — just console.
       console.warn('audit write failed', e);
     }
   }
+  // Download a full JSON snapshot of every collection — director can archive
+  // this locally as an offline backup. No 3rd-party service.
+  window.downloadBackup = async function() {
+    const statusEl = document.getElementById('backup-status');
+    if (statusEl) statusEl.textContent = 'Sæki gögn…';
+    try {
+      const collections = ['jobs','containers','kars','driverRequests','approvedDrivers','auditLog','dismissedSuggestions','meta'];
+      const snapshot = { exportedAt: new Date().toISOString(), project: 'fura-app-d8efe' };
+      for (const name of collections) {
+        try {
+          const snap = await getDocs(collection(db, name));
+          snapshot[name] = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+        } catch (e) {
+          snapshot[name] = { error: String(e.message || e) };
+        }
+      }
+      const json = JSON.stringify(snapshot, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const stamp = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `fura-backup-${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      const total = collections.reduce((s, n) => s + (Array.isArray(snapshot[n]) ? snapshot[n].length : 0), 0);
+      if (statusEl) statusEl.textContent = `✓ Öryggisafrit sótt — ${total} skrár, ${(json.length / 1024).toFixed(0)} KB`;
+    } catch (e) {
+      if (statusEl) statusEl.textContent = `⚠ Villa: ${e.message || e}`;
+    }
+  };
+
   // Automatic pruning: delete audit-log entries older than 365 days.
   // Runs at most once per day per browser (localStorage throttle) to keep costs low.
   async function pruneOldAuditEntries() {
