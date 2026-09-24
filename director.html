@@ -2099,8 +2099,8 @@
         rows.push(row);
       }
     }
-    // Newest activity first
-    rows.sort((a, b) => (b.returnedAt || b.placedAt || '').localeCompare(a.returnedAt || a.placedAt || ''));
+    // Newest trip first (by placedAt, when the rental started)
+    rows.sort((a, b) => (b.placedAt || '').localeCompare(a.placedAt || ''));
     return rows;
   }
 
