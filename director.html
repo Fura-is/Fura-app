@@ -1691,7 +1691,7 @@
           const unit = item.isKar ? '🛢' : '🚛';
           const d = daysNow(item.placedAt);
           const efni = efniLbl(item);
-          const where = item.where ? `<span style="color:var(--muted);">📍 ${escHtml(item.where)}</span> · ` : '';
+          const where = item.where ? `<span style="color:var(--muted);">${escHtml(item.where)}</span> · ` : '';
           const sub = subNameForLive(item.company || '');
           const subTag = sub ? `<span class="fyr-subname-tag">${escHtml(sub)}</span> ` : '';
           return `<div class="fyr-rental-line still-out">
@@ -1705,7 +1705,7 @@
       const unit = r.isKar ? '🛢' : '🚛';
       const efni = efniLbl(r);
       const efniPart = efni ? ` · ${escHtml(efni)}` : '';
-      const where = r.where ? `<span style="color:var(--muted);">📍 ${escHtml(r.where)}</span> · ` : '';
+      const where = r.where ? `<span style="color:var(--muted);">${escHtml(r.where)}</span> · ` : '';
       const subTag = r.subName ? `<span class="fyr-subname-tag">${escHtml(r.subName)}</span> ` : '';
       return `<div class="fyr-rental-line">
         <strong>${unit} #${escHtml(r.containerId)}</strong> ${subTag}· ${where}${shortDate(r.placedAt)} → ${shortDate(r.returnedAt)} · <strong>${r.days} d</strong>${efniPart}
