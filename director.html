@@ -756,6 +756,7 @@
           </div>
           <button class="btn btn-rust btn-sm" onclick="openContainerForm()">+ Bæta við gámi</button>
           <button class="btn btn-outline btn-sm" onclick="openContainerImport()">📥 Flytja inn úr Excel</button>
+          <button class="btn btn-outline btn-sm" onclick="copyContainersForExcel()">📋 Afrita fyrir Excel</button>
         </div>
         <div id="utleiga-summary" class="utleiga-summary"></div>
         <div class="utleiga-layout" id="utleiga-layout">
@@ -2168,6 +2169,50 @@
       document.body.appendChild(ta); ta.select();
       document.execCommand('copy'); document.body.removeChild(ta);
       showToast(`Afritað ${rows.length} færslur ✓`);
+    });
+  };
+
+  // Copy the complete current container register as tab-separated rows.
+  // Pasting into Excel cell A1 fills the columns and rows automatically.
+  // This intentionally ignores the search box so the copy always contains every container.
+  window.copyContainersForExcel = function() {
+    const containers = sortContainers(appData.containers);
+    if (containers.length === 0) { showToast('Engir gámar til að afrita'); return; }
+
+    const cleanCell = (value) => String(value == null ? '' : value).replace(/[\t\r\n]+/g, ' ').trim();
+    const headers = [
+      'Númer', 'Stærð', 'Sérgerð', 'Staða', 'Fyrirtæki', 'Staðsetning',
+      'Efni', 'Sett þangað', 'Dagar á staðnum', 'Tengiliður', 'Athugasemd'
+    ];
+    const rows = containers.map(c => {
+      const isOut = c.status === 'utleigu';
+      return [
+        c.id || '',
+        sizeLabels[c.size] || c.size || '',
+        sergerdLabels[c.sergerd] || c.sergerd || '',
+        isOut ? 'Úti' : 'Heima',
+        isOut ? (c.company || '') : '',
+        isOut ? (c.where || '') : 'Fura',
+        efniDisplay(c) || '',
+        c.placedAt ? fmtIcelandicDate(c.placedAt) : '',
+        isOut && c.placedAt ? daysSince(c.placedAt) : '',
+        c.contact || '',
+        c.note || ''
+      ].map(cleanCell).join('\t');
+    });
+    const text = headers.join('\t') + '\n' + rows.join('\n');
+    const copied = () => showToast(`${containers.length} gámar afritaðir — límdu í reit A1 í Excel ✓`);
+
+    navigator.clipboard.writeText(text).then(copied).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      copied();
     });
   };
 
