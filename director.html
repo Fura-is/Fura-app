@@ -1000,8 +1000,7 @@
   <div class="modal-box" style="max-width:640px;">
     <div class="modal-title">🔔 Vikuleg staðfesting</div>
     <div style="font-size:0.88rem;color:var(--muted);margin-bottom:0.85rem;">
-      Elstu 25 gámar/kör sem hafa verið úti í > 30 daga (mest drift-hætta).
-      Ef ennþá úti hjá fyrirtækinu → <strong>Staðfest ennþá</strong>. Ef ekki → <strong>Breyta stöðu</strong>.
+      Farðu í gegnum listann. Ef gámur/kar er ennþá úti hjá fyrirtækinu → <strong>Staðfest ennþá</strong>. Ef ekki → <strong>Breyta stöðu</strong>.
     </div>
     <div id="reconcile-list" style="max-height:65vh;overflow-y:auto;"></div>
     <div class="modal-actions">
@@ -2762,33 +2761,16 @@
     if (!item.lastConfirmedAt) return 999;
     return Math.floor((Date.now() - new Date(item.lastConfirmedAt).getTime()) / 86400000);
   }
-  // Days since a container/kar was placed out (utleigu started)
-  function daysSincePlaced(item) {
-    if (!item.placedAt) return 0;
-    return Math.floor((Date.now() - new Date(item.placedAt + 'T00:00:00').getTime()) / 86400000);
-  }
-  // Reconciliation list: only gámar/kör úti í > 30 daga AND hafa ekki verið
-  // staðfest í > 7 daga. Elstu efst, max 25 per viku svo director drukkni ekki.
-  const RECONCILE_MIN_DAYS_OUT = 30;
-  const RECONCILE_MAX_PER_WEEK = 25;
   function unconfirmedUti() {
+    // Gámar/kör úti sem hafa ekki verið staðfest í > 7 daga
     const out = [];
     for (const c of appData.containers) {
-      if (c.status !== 'utleigu') continue;
-      if (daysSincePlaced(c) < RECONCILE_MIN_DAYS_OUT) continue;
-      if (daysSinceConfirm(c) < 7) continue;
-      out.push({ type: 'container', item: c });
+      if (c.status === 'utleigu' && daysSinceConfirm(c) >= 7) out.push({ type: 'container', item: c });
     }
     for (const k of appData.kars) {
-      if (k.status !== 'utleigu') continue;
-      if (daysSincePlaced(k) < RECONCILE_MIN_DAYS_OUT) continue;
-      if (daysSinceConfirm(k) < 7) continue;
-      out.push({ type: 'kar', item: k });
+      if (k.status === 'utleigu' && daysSinceConfirm(k) >= 7) out.push({ type: 'kar', item: k });
     }
-    // Oldest placedAt first (highest drift risk)
-    out.sort((a, b) => (a.item.placedAt || '').localeCompare(b.item.placedAt || ''));
-    // Cap at RECONCILE_MAX_PER_WEEK — the ones left over come up next week
-    return out.slice(0, RECONCILE_MAX_PER_WEEK);
+    return out;
   }
   function updateReconcileBanner() {
     const banner = document.getElementById('reconcile-banner');
@@ -2809,7 +2791,11 @@
   };
   function renderReconcileList() {
     const listEl = document.getElementById('reconcile-list');
-    const items = unconfirmedUti(); // already filtered + sorted + capped
+    const items = unconfirmedUti().sort((a, b) => {
+      const dA = a.item.placedAt || '';
+      const dB = b.item.placedAt || '';
+      return dA.localeCompare(dB); // oldest first
+    });
     if (items.length === 0) {
       listEl.innerHTML = `<div style="padding:1rem;text-align:center;color:var(--green);font-weight:700;">✓ Allt komið í lag</div>`;
       return;
