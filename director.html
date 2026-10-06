@@ -1339,12 +1339,12 @@
     reader.readAsDataURL(file);
   }
 
-  function clearImage() {
+  window.clearImage = function() {
     _jobImageData = null;
     document.getElementById('job-image-input').value = '';
     document.getElementById('image-preview-img').src = '';
     document.getElementById('image-preview-wrap').style.display = 'none';
-  }
+  };
 
   function completeLogin() {
     document.getElementById('login-screen').style.display = 'none';
