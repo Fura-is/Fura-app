@@ -63,6 +63,8 @@
     .nei-hint { font-size: 0.85rem; color: var(--muted); margin-top: 0.4rem; display: flex; align-items: center; gap: 0.5rem; }
     .nei-btn { background: transparent; border: 1.5px solid var(--mid); color: var(--ink); padding: 0.3rem 0.9rem; border-radius: 6px; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.15s; }
     .nei-btn:hover { background: var(--rust); border-color: var(--rust); color: #fff; }
+    .field-missing { outline: 2px solid var(--rust) !important; outline-offset: 2px; animation: fieldMissingPulse 0.6s ease-out; }
+    @keyframes fieldMissingPulse { 0% { box-shadow: 0 0 0 0 rgba(196, 98, 26, 0.5); } 100% { box-shadow: 0 0 0 10px rgba(196, 98, 26, 0); } }
     .complete-note-toggle { margin-top: 0.85rem; }
     .complete-note-toggle summary { list-style: none; cursor: pointer; font-size: 0.78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; display: inline-flex; align-items: center; gap: 0.3rem; user-select: none; }
     .complete-note-toggle summary::-webkit-details-marker { display: none; }
@@ -3519,9 +3521,36 @@
   }
 
   function validate(data) {
-    // Hard required — can't send without these
-    if (!data.date || !data.company || !data.where || !data.driver || !data.phone) {
-      showToast('Fylltu út dagsetningu, fyrirtæki, staðsetningu, síma og bílstjóra');
+    // Hard required — can't send without these. List only what is actually missing
+    // so the user isn't confused by a toast that names fields they already filled.
+    const missingRequired = [];
+    if (!data.date) missingRequired.push('dagsetningu');
+    if (!data.company) missingRequired.push('fyrirtæki');
+    if (!data.where) missingRequired.push('staðsetningu');
+    if (!data.phone) missingRequired.push('síma');
+    if (!data.driver) missingRequired.push('bílstjóra');
+    if (missingRequired.length) {
+      const list = missingRequired.length === 1
+        ? missingRequired[0]
+        : missingRequired.slice(0, -1).join(', ') + ' og ' + missingRequired[missingRequired.length - 1];
+      showToast('Fylltu út ' + list);
+      // Highlight the missing fields briefly so the user sees exactly where to look
+      const idMap = { 'dagsetningu':'job-date', 'fyrirtæki':'job-company', 'staðsetningu':'job-where', 'síma':'job-phone' };
+      missingRequired.forEach(name => {
+        const el = idMap[name] ? document.getElementById(idMap[name]) : null;
+        if (el) {
+          el.classList.add('field-missing');
+          setTimeout(() => el.classList.remove('field-missing'), 2500);
+        }
+        if (name === 'bílstjóra') {
+          const g = document.getElementById('job-driver-group');
+          if (g) {
+            g.classList.add('field-missing');
+            setTimeout(() => g.classList.remove('field-missing'), 2500);
+            g.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      });
       return false;
     }
     if (data.jobType === 'annad-type' && !data.jobTypeLabel) { showToast('Lýstu tegund beiðni'); return false; }

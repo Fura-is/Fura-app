@@ -45,6 +45,8 @@
     /* Theme toggle */
     .theme-toggle { background: none; border: none; color: rgba(255,255,255,0.55); cursor: pointer; font-size: 1.1rem; padding: 0.3rem 0.5rem; border-radius: 4px; transition: color 0.2s; }
     .theme-toggle:hover { color: #fff; }
+    .lang-toggle { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.75); cursor: pointer; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.05em; padding: 0.25rem 0.55rem; border-radius: 4px; transition: all 0.2s; }
+    .lang-toggle:hover { background: rgba(255,255,255,0.15); color: #fff; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
       background: var(--page-bg);
@@ -336,54 +338,54 @@
 <div id="invite-screen">
   <div class="login-box">
     <div class="login-logo">Fura</div>
-    <div class="login-sub" style="margin-bottom:0;">Þú þarft hlekk frá stjórnanda til að fá aðgang</div>
-    <p style="font-size:0.82rem;color:var(--muted);line-height:1.6;margin-top:0.75rem;">Hafðu samband við stjórnanda og biddu hann um að senda þér hlekk í SMS.</p>
+    <div class="login-sub" style="margin-bottom:0;" data-lang-text="invite_hdr">Þú þarft hlekk frá stjórnanda til að fá aðgang</div>
+    <p style="font-size:0.82rem;color:var(--muted);line-height:1.6;margin-top:0.75rem;" data-lang-text="invite_body_sms">Hafðu samband við stjórnanda og biddu hann um að senda þér hlekk í SMS.</p>
   </div>
 </div>
 
 <!-- LOGIN -->
 <div id="login-screen">
   <div style="width:100%;max-width:380px;">
-    <a href="index.html" class="back-link">← Til baka</a>
+    <a href="index.html" class="back-link" data-lang-text="back_link">← Til baka</a>
     <div class="login-box">
       <div class="login-logo">Fura</div>
-      <div class="login-sub">Bílstjórasvæði</div>
+      <div class="login-sub" data-lang-text="driver_area">Bílstjórasvæði</div>
 
       <div class="auth-tabs">
-        <button class="auth-tab active" onclick="switchAuth('login', this)">Innskrá</button>
-        <button class="auth-tab" onclick="switchAuth('register', this)">Búa til aðgang</button>
+        <button class="auth-tab active" onclick="switchAuth('login', this)" data-lang-text="auth_login">Innskrá</button>
+        <button class="auth-tab" onclick="switchAuth('register', this)" data-lang-text="auth_register_tab">Búa til aðgang</button>
       </div>
 
       <div class="auth-panel active" id="auth-login">
         <div class="form-group">
-          <label>Nafn</label>
-          <input type="text" id="login-name" placeholder="Fullt nafn..." autocomplete="name" />
+          <label data-lang-text="field_name">Nafn</label>
+          <input type="text" id="login-name" placeholder="Fullt nafn..." data-lang-placeholder="field_name_placeholder" autocomplete="name" />
         </div>
         <div class="form-group">
-          <label>Lykilorð</label>
+          <label data-lang-text="field_password">Lykilorð</label>
           <input type="password" id="login-password" placeholder="••••••" autocomplete="current-password" />
         </div>
-        <button class="btn btn-rust btn-full" onclick="doLogin()">Skrá inn</button>
-        <div class="msg msg-error" id="login-error">Rangt nafn eða lykilorð</div>
-        <div class="msg msg-pending" id="login-pending">Aðgangur þinn bíður samþykkis frá stjórnanda</div>
+        <button class="btn btn-rust btn-full" onclick="doLogin()" data-lang-text="btn_login">Skrá inn</button>
+        <div class="msg msg-error" id="login-error" data-lang-text="login_error_bad">Rangt nafn eða lykilorð</div>
+        <div class="msg msg-pending" id="login-pending" data-lang-text="login_pending">Aðgangur þinn bíður samþykkis frá stjórnanda</div>
       </div>
 
       <div class="auth-panel" id="auth-register">
         <div class="form-group">
-          <label>Fullt nafn</label>
-          <input type="text" id="reg-name" placeholder="t.d. Ljósbrá Sigurðardóttir" />
+          <label data-lang-text="field_fullname">Fullt nafn</label>
+          <input type="text" id="reg-name" placeholder="t.d. Ljósbrá Sigurðardóttir" data-lang-placeholder="reg_name_placeholder" />
         </div>
         <div class="form-group">
-          <label>Lykilorð</label>
-          <input type="password" id="reg-password" placeholder="Veldu lykilorð..." />
+          <label data-lang-text="field_password">Lykilorð</label>
+          <input type="password" id="reg-password" placeholder="Veldu lykilorð..." data-lang-placeholder="reg_password_placeholder" />
         </div>
         <div class="form-group">
-          <label>Staðfesta lykilorð</label>
-          <input type="password" id="reg-password2" placeholder="Lykilorð aftur..." />
+          <label data-lang-text="field_password_confirm">Staðfesta lykilorð</label>
+          <input type="password" id="reg-password2" placeholder="Lykilorð aftur..." data-lang-placeholder="reg_password2_placeholder" />
         </div>
-        <button class="btn btn-rust btn-full" onclick="doRegister()">Senda beiðni</button>
+        <button class="btn btn-rust btn-full" onclick="doRegister()" data-lang-text="btn_register">Senda beiðni</button>
         <div class="msg msg-error" id="reg-error"></div>
-        <div class="msg msg-success" id="reg-success">Beiðni send! Stjórnandi þarf að samþykkja aðgang þinn.</div>
+        <div class="msg msg-success" id="reg-success" data-lang-text="reg_success">Beiðni send! Stjórnandi þarf að samþykkja aðgang þinn.</div>
       </div>
     </div>
   </div>
@@ -396,8 +398,9 @@
       <div class="header-logo">Fura</div>
       <div style="display:flex;align-items:center;gap:0.75rem;">
         <span class="header-name" id="header-name"></span>
+        <button class="lang-toggle" id="lang-toggle-btn" onclick="toggleLang()" aria-label="Language" title="Language">IS</button>
         <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Skipta um þema" aria-label="Skipta um þema">🌙</button>
-        <button class="logout-btn" onclick="doLogout()">Útskrá</button>
+        <button class="logout-btn" id="logout-btn" onclick="doLogout()" data-lang-text="logout">Útskrá</button>
       </div>
     </div>
   </header>
@@ -408,8 +411,8 @@
       <button class="nav-tab active" id="tab-utkolun" onclick="switchTab('utkolun')">
         Útköllun<span class="nav-badge hidden" id="utkolun-badge">0</span>
       </button>
-      <button class="nav-tab" id="tab-vinnsla" onclick="switchTab('vinnsla')">Í vinnslu</button>
-      <button class="nav-tab" id="tab-klarud" onclick="switchTab('klarud')">Kláraðar beiðnir</button>
+      <button class="nav-tab" id="tab-vinnsla" onclick="switchTab('vinnsla')" data-lang-text="tab_vinnsla">Í vinnslu</button>
+      <button class="nav-tab" id="tab-klarud" onclick="switchTab('klarud')" data-lang-text="tab_klarud">Kláraðar beiðnir</button>
     </div>
 
     <!-- Tab panels -->
@@ -541,6 +544,412 @@
   };
   applyTheme(localStorage.getItem('fura_theme') === 'dark' ? 'dark' : 'light');
 
+  // ── LANGUAGE TOGGLE (IS / EN) ─────────────────────────────────────────────
+  // Driver-only translation. All user-facing text goes through t('key').
+  // Switching language rebuilds visible lists so cards re-render in the new language.
+  const LANG = {
+    is: {
+      logout: 'Útskrá',
+      // Login / invite screens
+      invite_title: 'Fura — Bílstjóri',
+      invite_sub: 'Starfsmannaapp',
+      invite_body: 'Þessi hlekkur er fyrir Fura bílstjóra.',
+      invite_hdr: 'Þú þarft hlekk frá stjórnanda til að fá aðgang',
+      invite_body_sms: 'Hafðu samband við stjórnanda og biddu hann um að senda þér hlekk í SMS.',
+      invite_login_btn: 'Ég hef aðgang — skrá inn',
+      invite_register_btn: 'Nýskráning fyrir Fura bílstjóra',
+      login_title: 'Fura',
+      login_sub: 'Innskráning',
+      driver_area: 'Bílstjórasvæði',
+      auth_login: 'Innskrá',
+      auth_register: 'Nýskráning',
+      auth_register_tab: 'Búa til aðgang',
+      field_name: 'Nafn',
+      field_fullname: 'Fullt nafn',
+      field_password: 'Lykilorð',
+      field_password_confirm: 'Staðfesta lykilorð',
+      field_name_placeholder: 'Fullt nafn...',
+      field_password_placeholder: '••••••',
+      reg_name_placeholder: 't.d. Ljósbrá Sigurðardóttir',
+      reg_password_placeholder: 'Veldu lykilorð...',
+      reg_password2_placeholder: 'Lykilorð aftur...',
+      btn_login: 'Skrá inn',
+      btn_register: 'Senda beiðni',
+      login_pending: 'Beiðni þín er í skoðun',
+      login_error_bad: 'Rangt nafn eða lykilorð',
+      login_error_pending: 'Beiðni þín er ennþá í skoðun',
+      login_error_empty: 'Fylltu út nafn og lykilorð',
+      reg_error_name: 'Sláðu inn nafn',
+      reg_error_pass: 'Lykilorð verður að vera að minnsta kosti 4 stafir',
+      reg_error_match: 'Lykilorð stemma ekki',
+      reg_error_exists: 'Þú hefur þegar sent inn beiðni — bíddu eftir svari',
+      reg_error_exists_name: 'Þetta nafn er þegar skráð',
+      reg_success: 'Beiðni send! Stjórnandi þarf að samþykkja aðgang þinn.',
+      back_link: '← Til baka',
+      // Tabs
+      tab_utkolun: 'Útköllun',
+      tab_vinnsla: 'Í vinnslu',
+      tab_klarud: 'Kláraðar beiðnir',
+      // Empty states
+      empty_utkolun: 'Engar nýjar útköllur',
+      empty_vinnsla: 'Ekkert í vinnslu',
+      empty_klarud: 'Engar kláraðar beiðnir enn',
+      // Status
+      status_opid: 'Opið',
+      status_ny: 'Ný beiðni',
+      status_accepted: 'Samþykkt',
+      status_onway: 'Á leiðinni',
+      status_delayed: 'Frestað',
+      status_done: 'Lokið',
+      // Recipient labels
+      recipient_all: 'Sent á alla',
+      recipient_you: 'Sent til þín',
+      // Priority
+      priority_badge: '🚨 Forgangur',
+      priority_section: '🚨 Forgangur',
+      priority_normal_section: 'Aðrar beiðnir',
+      // Card detail labels
+      label_fyrirtaeki: 'Fyrirtæki',
+      label_stadsetning: 'Staðsetning',
+      label_simi: 'Sími',
+      label_tengill: 'Tengill',
+      label_efni: 'Efni',
+      label_annad: 'Annað',
+      label_gamanumer: 'Gámanúmer',
+      label_karnumer: 'Karnúmer',
+      label_gam_tekinn: 'Gám tekinn',
+      label_gam_settur: 'Gám settur',
+      label_kar_tekid: 'Kar tekið',
+      label_kar_sett: 'Kar sett',
+      label_mynd: 'Mynd',
+      label_athugasemd: 'Athugasemd',
+      'label_tækjaþörf': 'Tækjaþörf',
+      // Buttons
+      btn_taka_vid: '✓ Taka við beiðni',
+      btn_samthykkja: '✓ Samþykkja beiðni',
+      btn_a_leidinni: '🚛 Á leiðinni',
+      btn_fresta: '⏸ Fresta',
+      btn_halda_afram: '▶ Halda áfram',
+      btn_sott: 'Sótt ✓',
+      btn_vista_breyt: '✓ Vista breytingar',
+      btn_haetta: 'Hætta við',
+      btn_laga: '✏ Laga',
+      btn_afrita: '📋 Afrita',
+      btn_copied: '✓ Afritað',
+      // Completion labels
+      compl_section_mixed: '🔀 Auka-aðgerð:',
+      compl_single_taka: 'Númer á {unit} sem þú ert að <span style="color:var(--rust);font-weight:800;">TAKA</span>',
+      compl_single_setja: 'Númer á {unit} sem þú ert að <span style="color:var(--green);font-weight:800;">SETJA</span>',
+      compl_losa: 'Númer á {unit} (sami {unit} tekinn og settur aftur)',
+      compl_tekinn: 'Númer á {unit} sem þú ert að <span style="color:var(--rust);font-weight:800;">TAKA</span>',
+      compl_settur: 'Númer á {unit} sem þú ert að <span style="color:var(--green);font-weight:800;">SETJA</span>',
+      compl_default: '{long}',
+      unit_kari: 'kari',
+      unit_gami: 'gámi',
+      unit_karnumer: 'Karnúmer',
+      unit_gamanumer: 'Gámanúmer',
+      compl_input_placeholder: 'Sláðu inn númer...',
+      compl_extra_input_placeholder: 'Sláðu inn gámanúmer...',
+      compl_note_summary: 'Athugasemd',
+      compl_note_hint: '(valkvætt)',
+      compl_note_placeholder: 'Var eitthvað að? Skráðu það hér...',
+      compl_nei_hint_kari: 'Ekkert númer á þessu kari?',
+      compl_nei_hint_gami: 'Ekkert gámanúmer?',
+      compl_nei: 'Nei',
+      // Aukagámur modal
+      extra_add_btn_kari: '＋ Bæta við aukakari',
+      extra_add_btn_gami: '＋ Bæta við aukagámi',
+      extra_modal_title_kari: 'Bæta við aukakari',
+      extra_modal_title_gami: 'Bæta við aukagámi',
+      extra_modal_prompt_kari: 'Hvað ætlar þú að gera við þennan kari?',
+      extra_modal_prompt_gami: 'Hvað ætlar þú að gera við þennan gám?',
+      extra_action_taka: 'Taka',
+      extra_action_taka_sub: 'Fjarlægja gám af staðnum',
+      extra_action_setja: 'Setja',
+      extra_action_setja_sub: 'Setja gám á staðinn (tómur)',
+      extra_efni_title: 'Hvað er í gámnum?',
+      extra_efni_prompt: 'Efni gámsins sem þú ert að taka',
+      extra_efni_jarn: 'Járn',
+      extra_efni_timbur: 'Timbur',
+      extra_efni_annad_label: 'Annað — lýstu',
+      extra_efni_annad_placeholder: 't.d. Kopar, ryðfrítt...',
+      extra_efni_annad_btn: 'Halda áfram með "Annað"',
+      extra_back: '← Til baka',
+      extra_row_action_taka: 'TAKA',
+      extra_row_action_setja: 'SETJA',
+      extra_aukagam_tekinn: 'Aukagámur tekinn',
+      extra_aukagam_settur: 'Aukagámur settur',
+      // Delay form
+      delay_title: 'Af hverju frestar þú?',
+      delay_placeholder: 'Lýstu ástæðunni...',
+      delay_confirm: 'Staðfesta töf',
+      delay_cancel: 'Hætta við',
+      delay_label: '⏸ Frestað',
+      // Toasts / messages
+      toast_claimed: '✓ Þú hefur tekið við beiðninni',
+      toast_accepted: '✓ Beiðni samþykkt',
+      toast_onway: 'Merkt: Á leiðinni 🚛',
+      toast_address_copied: 'Heimilisfang afritað!',
+      toast_describe_material: 'Lýstu efninu',
+      toast_sign_number_kari: 'Sláðu inn karnúmer',
+      toast_sign_number_gami: 'Sláðu inn gámanúmer',
+      toast_sign_both_kari: 'Sláðu inn bæði karnúmer',
+      toast_sign_both_gami: 'Sláðu inn bæði gámanúmer',
+      toast_sign_both_primary_kari: 'Sláðu inn bæði karnúmer (aðal-aðgerð)',
+      toast_sign_both_primary_gami: 'Sláðu inn bæði gámanúmer (aðal-aðgerð)',
+      toast_sign_number_primary_kari: 'Sláðu inn karnúmer (aðal-aðgerð)',
+      toast_sign_number_primary_gami: 'Sláðu inn gámanúmer (aðal-aðgerð)',
+      toast_sign_both_secondary_kari: 'Sláðu inn bæði karnúmer (auka-aðgerð)',
+      toast_sign_both_secondary_gami: 'Sláðu inn bæði gámanúmer (auka-aðgerð)',
+      toast_sign_number_secondary_kari: 'Sláðu inn karnúmer (auka-aðgerð)',
+      toast_sign_number_secondary_gami: 'Sláðu inn gámanúmer (auka-aðgerð)',
+      toast_sign_extras: 'Sláðu inn númer fyrir alla aukagáma (eða fjarlægðu þá)',
+      toast_done_kari: 'Lokið! Karnúmer skráð ✓',
+      toast_done_gami: 'Lokið! Gámanúmer skráð ✓',
+      toast_done_any: 'Lokið! Númer skráð ✓',
+      toast_delay_saved: 'Frestað ✓',
+      toast_resumed: 'Verkefni komið af stað aftur',
+      toast_delay_write_reason: 'Skráðu ástæðu töfar',
+      toast_save_changes: 'Breytingar vistaðar ✓',
+      // Day-ago labels
+      day_today: 'Í dag',
+      day_yesterday: 'Í gær',
+      day_n: '{n} dagar',
+      future_tomorrow: 'Á morgun',
+      future_n: 'Eftir {n} daga',
+      // Job type labels (also set by director — keep display-side labels here)
+      jobtype_sekja: 'Taka gám',
+      jobtype_losa: 'Losa gám',
+      jobtype_skipta: 'Skipta gám',
+      jobtype_fara: 'Vantar gám',
+      'jobtype_taka-kar': 'Taka kar',
+      'jobtype_losa-kar': 'Losa kar',
+      'jobtype_skipta-kari': 'Skipta kari',
+      'jobtype_vantar-kar': 'Vantar kar',
+    },
+    en: {
+      logout: 'Sign out',
+      invite_title: 'Fura — Driver',
+      invite_sub: 'Staff app',
+      invite_body: 'This link is for Fura drivers.',
+      invite_hdr: 'You need a link from a manager to get access',
+      invite_body_sms: 'Contact a manager and ask them to send you a link via SMS.',
+      invite_login_btn: 'I have access — sign in',
+      invite_register_btn: 'Register as a Fura driver',
+      login_title: 'Fura',
+      login_sub: 'Sign in',
+      driver_area: 'Driver area',
+      auth_login: 'Sign in',
+      auth_register: 'Register',
+      auth_register_tab: 'Create account',
+      field_name: 'Name',
+      field_fullname: 'Full name',
+      field_password: 'Password',
+      field_password_confirm: 'Confirm password',
+      field_name_placeholder: 'Full name...',
+      field_password_placeholder: '••••••',
+      reg_name_placeholder: 'e.g. Jón Jónsson',
+      reg_password_placeholder: 'Choose a password...',
+      reg_password2_placeholder: 'Password again...',
+      btn_login: 'Sign in',
+      btn_register: 'Send request',
+      login_pending: 'Your request is being reviewed',
+      login_error_bad: 'Wrong name or password',
+      login_error_pending: 'Your request is still being reviewed',
+      login_error_empty: 'Enter your name and password',
+      reg_error_name: 'Enter your name',
+      reg_error_pass: 'Password must be at least 4 characters',
+      reg_error_match: "Passwords don't match",
+      reg_error_exists: 'You already submitted a request — please wait for approval',
+      reg_error_exists_name: 'That name is already registered',
+      reg_success: 'Request sent! A manager must approve your access.',
+      back_link: '← Back',
+      tab_utkolun: 'Dispatch',
+      tab_vinnsla: 'In progress',
+      tab_klarud: 'Completed',
+      empty_utkolun: 'No new dispatches',
+      empty_vinnsla: 'Nothing in progress',
+      empty_klarud: 'No completed requests yet',
+      status_opid: 'Open',
+      status_ny: 'New request',
+      status_accepted: 'Accepted',
+      status_onway: 'On the way',
+      status_delayed: 'Delayed',
+      status_done: 'Done',
+      recipient_all: 'Sent to all',
+      recipient_you: 'Sent to you',
+      priority_badge: '🚨 Priority',
+      priority_section: '🚨 Priority',
+      priority_normal_section: 'Other requests',
+      label_fyrirtaeki: 'Company',
+      label_stadsetning: 'Location',
+      label_simi: 'Phone',
+      label_tengill: 'Contact',
+      label_efni: 'Material',
+      label_annad: 'Other',
+      label_gamanumer: 'Container #',
+      label_karnumer: 'Tub #',
+      label_gam_tekinn: 'Container picked up',
+      label_gam_settur: 'Container dropped off',
+      label_kar_tekid: 'Tub picked up',
+      label_kar_sett: 'Tub dropped off',
+      label_mynd: 'Photo',
+      label_athugasemd: 'Note',
+      'label_tækjaþörf': 'Equipment',
+      btn_taka_vid: '✓ Accept request',
+      btn_samthykkja: '✓ Accept request',
+      btn_a_leidinni: '🚛 On the way',
+      btn_fresta: '⏸ Delay',
+      btn_halda_afram: '▶ Resume',
+      btn_sott: 'Done ✓',
+      btn_vista_breyt: '✓ Save changes',
+      btn_haetta: 'Cancel',
+      btn_laga: '✏ Edit',
+      btn_afrita: '📋 Copy',
+      btn_copied: '✓ Copied',
+      compl_section_mixed: '🔀 Secondary action:',
+      compl_single_taka: 'Number of the {unit} you are <span style="color:var(--rust);font-weight:800;">PICKING UP</span>',
+      compl_single_setja: 'Number of the {unit} you are <span style="color:var(--green);font-weight:800;">DROPPING OFF</span>',
+      compl_losa: 'Number of the {unit} (same {unit} picked up and dropped off)',
+      compl_tekinn: 'Number of the {unit} you are <span style="color:var(--rust);font-weight:800;">PICKING UP</span>',
+      compl_settur: 'Number of the {unit} you are <span style="color:var(--green);font-weight:800;">DROPPING OFF</span>',
+      compl_default: '{long}',
+      unit_kari: 'tub',
+      unit_gami: 'container',
+      unit_karnumer: 'Tub #',
+      unit_gamanumer: 'Container #',
+      compl_input_placeholder: 'Enter number...',
+      compl_extra_input_placeholder: 'Enter container number...',
+      compl_note_summary: 'Note',
+      compl_note_hint: '(optional)',
+      compl_note_placeholder: 'Any issues? Note them here...',
+      compl_nei_hint_kari: 'No number on this tub?',
+      compl_nei_hint_gami: 'No container number?',
+      compl_nei: 'No',
+      extra_add_btn_kari: '＋ Add extra tub',
+      extra_add_btn_gami: '＋ Add extra container',
+      extra_modal_title_kari: 'Add extra tub',
+      extra_modal_title_gami: 'Add extra container',
+      extra_modal_prompt_kari: 'What will you do with this tub?',
+      extra_modal_prompt_gami: 'What will you do with this container?',
+      extra_action_taka: 'Pick up',
+      extra_action_taka_sub: 'Remove the container from the location',
+      extra_action_setja: 'Drop off',
+      extra_action_setja_sub: 'Place an empty container at the location',
+      extra_efni_title: 'What is in the container?',
+      extra_efni_prompt: 'Material of the container you are picking up',
+      extra_efni_jarn: 'Steel',
+      extra_efni_timbur: 'Wood',
+      extra_efni_annad_label: 'Other — describe',
+      extra_efni_annad_placeholder: 'e.g. Copper, stainless...',
+      extra_efni_annad_btn: 'Continue with "Other"',
+      extra_back: '← Back',
+      extra_row_action_taka: 'PICK UP',
+      extra_row_action_setja: 'DROP OFF',
+      extra_aukagam_tekinn: 'Extra container picked up',
+      extra_aukagam_settur: 'Extra container dropped off',
+      delay_title: 'Why are you delaying?',
+      delay_placeholder: 'Describe the reason...',
+      delay_confirm: 'Confirm delay',
+      delay_cancel: 'Cancel',
+      delay_label: '⏸ Delayed',
+      toast_claimed: '✓ You accepted the request',
+      toast_accepted: '✓ Request accepted',
+      toast_onway: 'Marked: On the way 🚛',
+      toast_address_copied: 'Address copied!',
+      toast_describe_material: 'Describe the material',
+      toast_sign_number_kari: 'Enter the tub number',
+      toast_sign_number_gami: 'Enter the container number',
+      toast_sign_both_kari: 'Enter both tub numbers',
+      toast_sign_both_gami: 'Enter both container numbers',
+      toast_sign_both_primary_kari: 'Enter both tub numbers (primary action)',
+      toast_sign_both_primary_gami: 'Enter both container numbers (primary action)',
+      toast_sign_number_primary_kari: 'Enter the tub number (primary action)',
+      toast_sign_number_primary_gami: 'Enter the container number (primary action)',
+      toast_sign_both_secondary_kari: 'Enter both tub numbers (secondary action)',
+      toast_sign_both_secondary_gami: 'Enter both container numbers (secondary action)',
+      toast_sign_number_secondary_kari: 'Enter the tub number (secondary action)',
+      toast_sign_number_secondary_gami: 'Enter the container number (secondary action)',
+      toast_sign_extras: 'Enter numbers for all extra containers (or remove them)',
+      toast_done_kari: 'Done! Tub number saved ✓',
+      toast_done_gami: 'Done! Container number saved ✓',
+      toast_done_any: 'Done! Number saved ✓',
+      toast_delay_saved: 'Delayed ✓',
+      toast_resumed: 'Task resumed',
+      toast_delay_write_reason: 'Enter the delay reason',
+      toast_save_changes: 'Changes saved ✓',
+      day_today: 'Today',
+      day_yesterday: 'Yesterday',
+      day_n: '{n} days',
+      future_tomorrow: 'Tomorrow',
+      future_n: 'In {n} days',
+      jobtype_sekja: 'Pick up container',
+      jobtype_losa: 'Empty container',
+      jobtype_skipta: 'Swap container',
+      jobtype_fara: 'Needs container',
+      'jobtype_taka-kar': 'Pick up tub',
+      'jobtype_losa-kar': 'Empty tub',
+      'jobtype_skipta-kari': 'Swap tub',
+      'jobtype_vantar-kar': 'Needs tub',
+    }
+  };
+  let _lang = localStorage.getItem('fura_lang') === 'en' ? 'en' : 'is';
+  function t(key, params) {
+    let s = (LANG[_lang] && LANG[_lang][key]) || (LANG.is && LANG.is[key]) || key;
+    if (params) for (const k in params) s = s.split('{' + k + '}').join(params[k]);
+    return s;
+  }
+  // Build a localized "jobTypeLabel" from the stored machine jobType(s).
+  // 'annad-type' isn't in the dict — fall back to whatever the director typed.
+  function localizedJobTypeLabel(job) {
+    const one = (jt, stored) => {
+      if (!jt) return '';
+      if (jt === 'annad-type') return stored || '';
+      const key = 'jobtype_' + jt;
+      const v = (LANG[_lang] && LANG[_lang][key]) || (LANG.is && LANG.is[key]);
+      return v || stored || '';
+    };
+    const stored = (job.jobTypeLabel || '').split(' + ');
+    const a = one(job.jobType, stored[0]);
+    const b = job.jobType2 ? one(job.jobType2, stored[1]) : '';
+    return [a, b].filter(Boolean).join(' + ') || (job.jobTypeLabel || '—');
+  }
+  function applyLang() {
+    try {
+      document.documentElement.setAttribute('lang', _lang);
+      const btn = document.getElementById('lang-toggle-btn');
+      if (btn) btn.textContent = _lang === 'en' ? 'EN' : 'IS';
+      // Walk every element declaring a data-lang-* attribute.
+      document.querySelectorAll('[data-lang-text]').forEach(el => {
+        el.textContent = t(el.getAttribute('data-lang-text'));
+      });
+      document.querySelectorAll('[data-lang-html]').forEach(el => {
+        el.innerHTML = t(el.getAttribute('data-lang-html'));
+      });
+      document.querySelectorAll('[data-lang-placeholder]').forEach(el => {
+        el.setAttribute('placeholder', t(el.getAttribute('data-lang-placeholder')));
+      });
+      document.querySelectorAll('[data-lang-title]').forEach(el => {
+        el.setAttribute('title', t(el.getAttribute('data-lang-title')));
+      });
+      // Nav tab "Útköllun" has a badge inside — set first text node only
+      const utkolunBtn = document.getElementById('tab-utkolun');
+      if (utkolunBtn) {
+        const badge = utkolunBtn.querySelector('.nav-badge');
+        utkolunBtn.firstChild && (utkolunBtn.firstChild.textContent = t('tab_utkolun'));
+        if (badge) utkolunBtn.appendChild(badge);
+      }
+      // Re-render active list to pick up new language in cards
+      if (typeof renderAll === 'function' && typeof currentDriverName !== 'undefined' && currentDriverName) renderAll();
+    } catch (err) { console.warn('applyLang failed', err); }
+  }
+  window.toggleLang = function() {
+    _lang = _lang === 'en' ? 'is' : 'en';
+    localStorage.setItem('fura_lang', _lang);
+    applyLang();
+  };
+  applyLang();
+
   window.switchAuth = function(tab, btn) {
     document.querySelectorAll('.auth-tab').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.auth-panel').forEach(p => p.classList.remove('active'));
@@ -566,30 +975,30 @@
     const name = document.getElementById('reg-name').value.trim();
     const pw = document.getElementById('reg-password').value;
     const pw2 = document.getElementById('reg-password2').value;
-    if (!name) { showMsg('reg-error', 'Sláðu inn nafn'); return; }
-    if (pw.length < 4) { showMsg('reg-error', 'Lykilorð verður að vera að minnsta kosti 4 stafir'); return; }
-    if (pw !== pw2) { showMsg('reg-error', 'Lykilorð stemma ekki'); return; }
+    if (!name) { showMsg('reg-error', t('reg_error_name')); return; }
+    if (pw.length < 4) { showMsg('reg-error', t('reg_error_pass')); return; }
+    if (pw !== pw2) { showMsg('reg-error', t('reg_error_match')); return; }
     const d = getData();
     const exists = [...(d.driverRequests||[]),...(d.approvedDrivers||[])].find(r => nameMatch(r.name, name));
-    if (exists) { showMsg('reg-error', 'Þetta nafn er þegar skráð'); return; }
+    if (exists) { showMsg('reg-error', t('reg_error_exists_name')); return; }
     const req = { id: Date.now().toString(), name, password: pw, status: 'pending' };
     await fsSetRequest(req);
     document.getElementById('reg-name').value = '';
     document.getElementById('reg-password').value = '';
     document.getElementById('reg-password2').value = '';
-    showMsg('reg-success', 'Beiðni send! Stjórnandi þarf að samþykkja aðgang þinn.');
+    showMsg('reg-success', t('reg_success'));
   };
 
   window.doLogin = function() {
     hideAllMsgs();
     const name = document.getElementById('login-name').value.trim();
     const pw = document.getElementById('login-password').value;
-    if (!name || !pw) { showMsg('login-error', 'Fylltu út nafn og lykilorð'); return; }
+    if (!name || !pw) { showMsg('login-error', t('login_error_empty')); return; }
     const d = getData();
     const pending = (d.driverRequests||[]).find(r => nameMatch(r.name, name) && r.password === pw);
-    if (pending) { showMsg('login-pending', 'Aðgangur þinn bíður samþykkis frá stjórnanda'); return; }
+    if (pending) { showMsg('login-pending', t('login_pending')); return; }
     const approved = (d.approvedDrivers||[]).find(r => nameMatch(r.name, name) && r.password === pw);
-    if (!approved) { showMsg('login-error', 'Rangt nafn eða lykilorð'); return; }
+    if (!approved) { showMsg('login-error', t('login_error_bad')); return; }
     localStorage.setItem('fura_driver_session', approved.name);
     currentDriverName = approved.name;
     document.getElementById('login-screen').style.display = 'none';
@@ -691,9 +1100,9 @@
     const cMid = new Date(created.getFullYear(), created.getMonth(), created.getDate());
     const tMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const diff = Math.floor((tMid - cMid) / 86400000);
-    if (diff <= 0) return 'Í dag';
-    if (diff === 1) return 'Í gær';
-    return `${diff} dagar`;
+    if (diff <= 0) return t('day_today');
+    if (diff === 1) return t('day_yesterday');
+    return t('day_n', { n: diff });
   }
 
   function updateBadge(count) {
@@ -716,20 +1125,20 @@
     // Priority beiðnir birtast efst í sérflokki
     const byOldest = (a, b) => (a.createdAt || '').localeCompare(b.createdAt || '');
     const newJobs = getNewJobs(d).sort(byOldest);
-    renderList('utkolun-list', newJobs, 'Útköllun', '🔔', 'Engar nýjar útköllur');
+    renderList('utkolun-list', newJobs, t('tab_utkolun'), '🔔', t('empty_utkolun'));
     updatePriorityNavBadge(newJobs.filter(j => j.priority).length);
 
     // Í vinnslu — accepted, onway, or delayed
     const onwayJobs = d.jobs.filter(j =>
       nameMatch(j.driverLabel, currentDriverName) && (j.status === 'accepted' || j.status === 'onway' || j.status === 'delayed')
     ).sort(byNewest);
-    renderList('vinnsla-list', onwayJobs, 'Í vinnslu', '🚛', 'Ekkert í vinnslu');
+    renderList('vinnsla-list', onwayJobs, t('tab_vinnsla'), '🚛', t('empty_vinnsla'));
 
     // Kláruð — done
     const doneJobs = d.jobs.filter(j =>
       nameMatch(j.driverLabel, currentDriverName) && j.status === 'done'
     ).sort(byNewest);
-    renderList('klarud-list', doneJobs, 'Kláraðar beiðnir', '✅', 'Engar kláraðar beiðnir enn');
+    renderList('klarud-list', doneJobs, t('tab_klarud'), '✅', t('empty_klarud'));
 
     // Badge stays until every new job has been acted on
     updateBadge(newJobs.length);
@@ -755,7 +1164,7 @@
     if (priority.length > 0) {
       html += `<div class="priority-section-heading">🚨 Forgangur <span class="count">${priority.length}</span></div>`;
       html += priority.map(renderRow).join('');
-      if (normal.length > 0) html += `<div class="normal-section-heading">Aðrar beiðnir</div>`;
+      if (normal.length > 0) html += `<div class="normal-section-heading">${t('priority_normal_section')}</div>`;
     }
     html += normal.map(renderRow).join('');
     el.innerHTML = html;
@@ -806,31 +1215,34 @@
     if (!jobType) return '';
     const isKar = ['taka-kar','losa-kar','skipta-kari','vantar-kar'].includes(jobType);
     const isSkipta = jobType === 'skipta' || jobType === 'skipta-kari';
-    const unit = isKar ? 'kari' : 'gámi';
-    const unitLong = isKar ? 'Karnúmer' : 'Gámanúmer';
+    const unit = isKar ? t('unit_kari') : t('unit_gami');
+    const unitLong = isKar ? t('unit_karnumer') : t('unit_gamanumer');
     let singleLabel = unitLong;
-    if (jobType === 'sekja' || jobType === 'taka-kar') singleLabel = `Númer á ${unit} sem þú ert að <span style="color:var(--rust);font-weight:800;">TAKA</span>`;
-    else if (jobType === 'fara' || jobType === 'vantar-kar') singleLabel = `Númer á ${unit} sem þú ert að <span style="color:var(--green);font-weight:800;">SETJA</span>`;
-    else if (jobType === 'losa' || jobType === 'losa-kar') singleLabel = `Númer á ${unit} (sami ${unit} tekinn og settur aftur)`;
-    const tekinnLabel = `Númer á ${unit} sem þú ert að <span style="color:var(--rust);font-weight:800;">TAKA</span>`;
-    const setturLabel = `Númer á ${unit} sem þú ert að <span style="color:var(--green);font-weight:800;">SETJA</span>`;
+    if (jobType === 'sekja' || jobType === 'taka-kar') singleLabel = t('compl_single_taka', { unit });
+    else if (jobType === 'fara' || jobType === 'vantar-kar') singleLabel = t('compl_single_setja', { unit });
+    else if (jobType === 'losa' || jobType === 'losa-kar') singleLabel = t('compl_losa', { unit });
+    const tekinnLabel = t('compl_tekinn', { unit });
+    const setturLabel = t('compl_settur', { unit });
     const idSingle = `container${suffix}-${job.id}`;
     const idTekinn = `container-tekinn${suffix}-${job.id}`;
     const idSettur = `container-settur${suffix}-${job.id}`;
     const vSingle = numbers.containerNumber || '';
     const vTekinn = numbers.containerNumberTekinn || '';
     const vSettur = numbers.containerNumberSettur || '';
-    const neiHint = isKar ? `<div class="nei-hint">Ekkert númer á þessu kari? <button type="button" class="nei-btn" onclick="markNei('${idSingle}')">Nei</button></div>` : '';
-    const neiHintTekinn = isKar ? `<div class="nei-hint">Ekkert númer? <button type="button" class="nei-btn" onclick="markNei('${idTekinn}')">Nei</button></div>` : '';
-    const neiHintSettur = isKar ? `<div class="nei-hint">Ekkert númer? <button type="button" class="nei-btn" onclick="markNei('${idSettur}')">Nei</button></div>` : '';
+    const neiPrompt = isKar ? t('compl_nei_hint_kari') : t('compl_nei_hint_gami');
+    const neiLbl = t('compl_nei');
+    const inputPh = t('compl_input_placeholder');
+    const neiHint = `<div class="nei-hint">${neiPrompt} <button type="button" class="nei-btn" onclick="markNei('${idSingle}')">${neiLbl}</button></div>`;
+    const neiHintTekinn = `<div class="nei-hint">${neiPrompt} <button type="button" class="nei-btn" onclick="markNei('${idTekinn}')">${neiLbl}</button></div>`;
+    const neiHintSettur = `<div class="nei-hint">${neiPrompt} <button type="button" class="nei-btn" onclick="markNei('${idSettur}')">${neiLbl}</button></div>`;
     if (isSkipta) {
       return `<div class="container-input-wrap">
         <label>${tekinnLabel}</label>
-        ${isKar ? karInputHtml(idTekinn, vTekinn) : `<input type="text" id="${idTekinn}" class="container-full-input" placeholder="Sláðu inn númer..." value="${vTekinn}" />`}
+        ${isKar ? karInputHtml(idTekinn, vTekinn) : `<input type="text" id="${idTekinn}" class="container-full-input" placeholder="${inputPh}" value="${vTekinn}" />`}
         ${neiHintTekinn}
         <label style="margin-top:0.5rem;display:block;">${setturLabel}</label>
         <div class="container-row" style="margin-top:0.4rem;">
-          ${isKar ? karInputHtml(idSettur, vSettur) : `<input type="text" id="${idSettur}" placeholder="Sláðu inn númer..." value="${vSettur}" />`}
+          ${isKar ? karInputHtml(idSettur, vSettur) : `<input type="text" id="${idSettur}" placeholder="${inputPh}" value="${vSettur}" />`}
         </div>
         ${neiHintSettur}
       </div>`;
@@ -838,7 +1250,7 @@
     return `<div class="container-input-wrap">
       <label>${singleLabel}</label>
       <div class="container-row">
-        ${isKar ? karInputHtml(idSingle, vSingle) : `<input type="text" id="${idSingle}" placeholder="Sláðu inn númer..." value="${vSingle}" />`}
+        ${isKar ? karInputHtml(idSingle, vSingle) : `<input type="text" id="${idSingle}" placeholder="${inputPh}" value="${vSingle}" />`}
       </div>
       ${neiHint}
     </div>`;
@@ -847,98 +1259,90 @@
   function jobCard(job) {
     const isAll = job.driver === 'all';
     const isPriority = !!job.priority;
-    const statusLabel = { new: isAll ? 'Opið' : 'Ný beiðni', accepted: 'Samþykkt', onway: 'Á leiðinni', delayed: 'Frestað', done: 'Lokið' };
+    const statusLabel = { new: isAll ? t('status_opid') : t('status_ny'), accepted: t('status_accepted'), onway: t('status_onway'), delayed: t('status_delayed'), done: t('status_done') };
     const statusBadgeClass = { new: isAll ? 'badge-all' : 'badge-new', accepted: 'badge-accepted', onway: 'badge-onway', delayed: 'badge-delayed', done: 'badge-done' };
     const cardClass = isAll ? 'status-all' : `status-${job.status}`;
-    const recipientLabel = isAll ? 'Sent á alla' : `Sent til þín — ${job.driverLabel || currentDriverName}`;
+    const recipientLabel = isAll ? t('recipient_all') : `${t('recipient_you')} — ${job.driverLabel || currentDriverName}`;
     const recipientClass = isAll ? 'recipient-all' : 'recipient-you';
     const isDelaying = _delayingJobId === job.id;
     const isSkipta = job.jobType === 'skipta' || job.jobType === 'skipta-kari';
     const isKar = ['taka-kar','losa-kar','skipta-kari','vantar-kar'].includes(job.jobType);
-    const unitLong = isKar ? 'Karnúmer' : 'Gámanúmer';
-    // Action-specific label so it's clear whether driver is taking or placing
-    const unit = isKar ? 'kari' : 'gámi';
-    let singleLabel = unitLong;
-    if (job.jobType === 'sekja' || job.jobType === 'taka-kar') {
-      singleLabel = `Númer á ${unit} sem þú ert að <span style="color:var(--rust);font-weight:800;">TAKA</span>`;
-    } else if (job.jobType === 'fara' || job.jobType === 'vantar-kar') {
-      singleLabel = `Númer á ${unit} sem þú ert að <span style="color:var(--green);font-weight:800;">SETJA</span>`;
-    } else if (job.jobType === 'losa' || job.jobType === 'losa-kar') {
-      singleLabel = `Númer á ${unit} (sami ${unit} tekinn og settur aftur)`;
-    }
-    const tekinnLabel = `Númer á ${unit} sem þú ert að <span style="color:var(--rust);font-weight:800;">TAKA</span>`;
-    const setturLabel = `Númer á ${unit} sem þú ert að <span style="color:var(--green);font-weight:800;">SETJA</span>`;
-    const unitShort = isKar ? 'Kar' : 'Gám';
+    const unitLong = isKar ? t('unit_karnumer') : t('unit_gamanumer');
+    const unitShort = isKar ? (_lang === 'en' ? 'Tub' : 'Kar') : (_lang === 'en' ? 'Container' : 'Gám');
 
     // Done container number block (hidden when fixing — edit form takes over)
     const isFixingThis = _fixingDoneId === job.id;
     let doneBlock = '';
     if (job.status === 'done' && !isFixingThis) {
       doneBlock = `<hr class="job-divider"/>`;
+      const tekinnLbl = isKar ? t('label_kar_tekid') : t('label_gam_tekinn');
+      const setturLbl = isKar ? t('label_kar_sett') : t('label_gam_settur');
       if (job.containerNumberTekinn) {
-        doneBlock += `<div class="job-detail"><strong>${unitShort} tekinn</strong> <span style="color:var(--green);font-weight:700;">${job.containerNumberTekinn}</span></div>`;
-        doneBlock += `<div class="job-detail"><strong>${unitShort} settur</strong> <span style="color:var(--green);font-weight:700;">${job.containerNumberSettur || '—'}</span></div>`;
+        doneBlock += `<div class="job-detail"><strong>${tekinnLbl}</strong> <span style="color:var(--green);font-weight:700;">${job.containerNumberTekinn}</span></div>`;
+        doneBlock += `<div class="job-detail"><strong>${setturLbl}</strong> <span style="color:var(--green);font-weight:700;">${job.containerNumberSettur || '—'}</span></div>`;
       } else {
         doneBlock += `<div class="job-detail"><strong>${unitLong}</strong> <span style="color:var(--green);font-weight:700;">${job.containerNumber || '—'}</span></div>`;
       }
       if (job.extraContainers && job.extraContainers.length > 0) {
         for (const e of job.extraContainers) {
-          const efniTxt = e.action === 'taka' ? (e.efni === 'annad' ? (e.efniLabel || 'Annað') : (e.efni === 'jarn' ? 'Járn' : (e.efni === 'timbur' ? 'Timbur' : ''))) : '';
-          const lbl = e.action === 'taka' ? `Aukagámur tekinn${efniTxt ? ' · ' + efniTxt : ''}` : 'Aukagámur settur';
+          const efniTxt = e.action === 'taka' ? (e.efni === 'annad' ? (e.efniLabel || t('label_annad')) : (e.efni === 'jarn' ? t('extra_efni_jarn') : (e.efni === 'timbur' ? t('extra_efni_timbur') : ''))) : '';
+          const lbl = e.action === 'taka' ? `${t('extra_aukagam_tekinn')}${efniTxt ? ' · ' + efniTxt : ''}` : t('extra_aukagam_settur');
           doneBlock += `<div class="job-detail"><strong>${lbl}</strong> <span style="color:var(--rust);font-weight:700;">${e.number || '—'}</span></div>`;
         }
       }
       if (job.completionNote) {
-        doneBlock += `<div class="job-detail" style="margin-top:0.5rem;"><strong>Athugasemd</strong> <span>${job.completionNote}</span></div>`;
+        doneBlock += `<div class="job-detail" style="margin-top:0.5rem;"><strong>${t('label_athugasemd')}</strong> <span>${job.completionNote}</span></div>`;
       }
     }
 
     // Action block
     let actionBlock = '';
     if (isAll && job.status === 'new') {
-      actionBlock = `<div class="status-actions"><button class="btn btn-rust btn-full" onclick="claimJob('${job.id}')">✓ Taka við beiðni</button></div>`;
+      actionBlock = `<div class="status-actions"><button class="btn btn-rust btn-full" onclick="claimJob('${job.id}')">${t('btn_taka_vid')}</button></div>`;
     } else if (!isAll && job.status === 'new') {
-      actionBlock = `<div class="status-actions"><button class="btn btn-rust btn-full" onclick="markAccepted('${job.id}')">✓ Samþykkja beiðni</button></div>`;
+      actionBlock = `<div class="status-actions"><button class="btn btn-rust btn-full" onclick="markAccepted('${job.id}')">${t('btn_samthykkja')}</button></div>`;
     } else if (job.status === 'delayed') {
       actionBlock = `
         <div class="delay-info">
-          <div class="delay-info-label">⏸ Frestað</div>
+          <div class="delay-info-label">${t('delay_label')}</div>
           ${job.delayNote ? `<div style="font-size:0.9rem;color:var(--ink);margin-top:0.2rem;">${job.delayNote}</div>` : ''}
         </div>
-        <div class="status-actions" style="margin-top:0.75rem;"><button class="btn btn-rust btn-full" onclick="resumeJob('${job.id}')">▶ Halda áfram</button></div>`;
+        <div class="status-actions" style="margin-top:0.75rem;"><button class="btn btn-rust btn-full" onclick="resumeJob('${job.id}')">${t('btn_halda_afram')}</button></div>`;
     } else if (job.status === 'accepted' && !isDelaying) {
       actionBlock = `
         <div class="status-actions" style="display:flex;gap:0.5rem;">
-          <button class="btn btn-rust" style="flex:1;" onclick="markOnWay('${job.id}')">🚛 Á leiðinni</button>
-          <button class="btn btn-mid btn-sm" onclick="showDelayForm('${job.id}')">⏸ Fresta</button>
+          <button class="btn btn-rust" style="flex:1;" onclick="markOnWay('${job.id}')">${t('btn_a_leidinni')}</button>
+          <button class="btn btn-mid btn-sm" onclick="showDelayForm('${job.id}')">${t('btn_fresta')}</button>
         </div>`;
     } else if ((job.status === 'onway' && !isDelaying) || isFixingThis) {
       // Auka-gámar/kör — driver can add unexpected units on-site
       const extras = _extrasMap[job.id] || [];
+      const extraPh = t('compl_extra_input_placeholder');
       const extrasHtml = extras.map(e => `
         <div class="extra-row">
           <div class="extra-label">${extraRowLabel(e)}</div>
           <div class="extra-input-wrap">
-            ${isKar ? karInputHtml(`extra-num-${job.id}-${e.key}`, e.number) : `<input type="text" id="extra-num-${job.id}-${e.key}" placeholder="Sláðu inn gámanúmer..." value="${e.number || ''}" />`}
-            <button class="extra-remove" onclick="removeExtra('${job.id}', ${e.key})" aria-label="Fjarlægja">×</button>
+            ${isKar ? karInputHtml(`extra-num-${job.id}-${e.key}`, e.number) : `<input type="text" id="extra-num-${job.id}-${e.key}" placeholder="${extraPh}" value="${e.number || ''}" />`}
+            <button class="extra-remove" onclick="removeExtra('${job.id}', ${e.key})" aria-label="×">×</button>
           </div>
         </div>
       `).join('');
-      const addExtraBtn = `<button class="add-extra-btn" onclick="openExtraPicker('${job.id}', ${isKar})">＋ Bæta við auka${isKar ? 'kari' : 'gámi'}</button>`;
+      const addExtraLabel = isKar ? t('extra_add_btn_kari') : t('extra_add_btn_gami');
+      const addExtraBtn = `<button class="add-extra-btn" onclick="openExtraPicker('${job.id}', ${isKar})">${addExtraLabel}</button>`;
       const noteVal = job.completionNote ? job.completionNote.replace(/</g,'&lt;') : '';
       const submitFn = isFixingThis ? `saveFixDone('${job.id}', ${isSkipta})` : `markDone('${job.id}'${isSkipta ? ', true' : ''})`;
-      const submitLabel = isFixingThis ? '✓ Vista breytingar' : 'Sótt ✓';
+      const submitLabel = isFixingThis ? t('btn_vista_breyt') : t('btn_sott');
       const extraBtns = isFixingThis
-        ? `<div style="margin-top:0.5rem;"><button class="btn btn-outline btn-sm" onclick="cancelFixDone()">Hætta við</button></div>`
-        : `<div style="margin-top:0.5rem;"><button class="btn btn-mid btn-sm" onclick="showDelayForm('${job.id}')">⏸ Fresta</button></div>`;
+        ? `<div style="margin-top:0.5rem;"><button class="btn btn-outline btn-sm" onclick="cancelFixDone()">${t('btn_haetta')}</button></div>`
+        : `<div style="margin-top:0.5rem;"><button class="btn btn-mid btn-sm" onclick="showDelayForm('${job.id}')">${t('btn_fresta')}</button></div>`;
       // Primary + optional secondary number sections (mixed beiðnir have jobType2)
       const primaryNums = { containerNumber: job.containerNumber, containerNumberTekinn: job.containerNumberTekinn, containerNumberSettur: job.containerNumberSettur };
       const primarySection = renderCompletionSection(job, job.jobType, '', primaryNums);
       let secondarySection = '';
       if (job.jobType2) {
         const secondaryNums = { containerNumber: job.containerNumber2, containerNumberTekinn: job.containerNumberTekinn2, containerNumberSettur: job.containerNumberSettur2 };
-        const jobTypeLabels2 = { sekja: 'Taka gám', losa: 'Losa gám', skipta: 'Skipta gám', fara: 'Vantar gám', 'taka-kar': 'Taka kar', 'losa-kar': 'Losa kar', 'skipta-kari': 'Skipta kari', 'vantar-kar': 'Vantar kar' };
-        secondarySection = `<div class="mixed-section-divider">🔀 Auka-aðgerð: <strong>${jobTypeLabels2[job.jobType2] || job.jobType2}</strong></div>` +
+        const secondaryLbl = t('jobtype_' + job.jobType2) || job.jobType2;
+        secondarySection = `<div class="mixed-section-divider">${t('compl_section_mixed')} <strong>${secondaryLbl}</strong></div>` +
           renderCompletionSection(job, job.jobType2, '2', secondaryNums);
       }
       actionBlock = `
@@ -948,8 +1352,8 @@
           ${extrasHtml}
           ${addExtraBtn}
           <details class="note-toggle"${noteVal ? ' open' : ''}>
-            <summary>Athugasemd <span class="note-toggle-hint">(valkvætt)</span><span class="note-arrow">▾</span></summary>
-            <textarea id="completion-note-${job.id}" class="container-full-input" rows="2" placeholder="Var eitthvað að? Skráðu það hér..." style="resize:none;margin-top:0.5rem;">${noteVal}</textarea>
+            <summary>${t('compl_note_summary')} <span class="note-toggle-hint">${t('compl_note_hint')}</span><span class="note-arrow">▾</span></summary>
+            <textarea id="completion-note-${job.id}" class="container-full-input" rows="2" placeholder="${t('compl_note_placeholder')}" style="resize:none;margin-top:0.5rem;">${noteVal}</textarea>
           </details>
           <button class="btn btn-green" style="width:100%;margin-top:0.75rem;" onclick="${submitFn}">${submitLabel}</button>
         </div>
@@ -957,33 +1361,36 @@
     } else if (job.status === 'done' && !isFixingThis) {
       const inGamaskjal = (job.rentalSummaries || []).some(s => s.inBillingPanel);
       if (inGamaskjal) {
-        actionBlock = `<div class="status-actions" style="margin-top:0.5rem;font-size:0.78rem;color:var(--muted);font-style:italic;">🔒 Færð í gámaskjal — stjórnandi þarf að bakka úr fyrst ef breyta þarf</div>`;
+        const lockedMsg = _lang === 'en'
+          ? '🔒 Filed in container log — a manager must revert first to edit'
+          : '🔒 Færð í gámaskjal — stjórnandi þarf að bakka úr fyrst ef breyta þarf';
+        actionBlock = `<div class="status-actions" style="margin-top:0.5rem;font-size:0.78rem;color:var(--muted);font-style:italic;">${lockedMsg}</div>`;
       } else {
-        actionBlock = `<div class="status-actions" style="margin-top:0.5rem;"><button class="btn btn-outline btn-sm" onclick="startFixDone('${job.id}')">✏ Laga</button></div>`;
+        actionBlock = `<div class="status-actions" style="margin-top:0.5rem;"><button class="btn btn-outline btn-sm" onclick="startFixDone('${job.id}')">${t('btn_laga')}</button></div>`;
       }
     }
 
     // Delay form (shown when driver clicks Fresta)
     const delayFormBlock = isDelaying ? `
       <div class="delay-form">
-        <label class="delay-form-label">Ástæða töfar</label>
-        <textarea id="delay-note-${job.id}" class="delay-textarea" placeholder="Hvers vegna er verið að fresta?..."></textarea>
+        <label class="delay-form-label">${t('delay_title')}</label>
+        <textarea id="delay-note-${job.id}" class="delay-textarea" placeholder="${t('delay_placeholder')}"></textarea>
         <div style="display:flex;gap:0.5rem;margin-top:0.75rem;">
-          <button class="btn btn-outline btn-full btn-sm" onclick="cancelDelay()">Hætta við</button>
-          <button class="btn btn-rust btn-full btn-sm" onclick="submitDelay('${job.id}')">Staðfesta töf</button>
+          <button class="btn btn-outline btn-full btn-sm" onclick="cancelDelay()">${t('delay_cancel')}</button>
+          <button class="btn btn-rust btn-full btn-sm" onclick="submitDelay('${job.id}')">${t('delay_confirm')}</button>
         </div>
       </div>` : '';
 
     const cls = (val) => val ? 'job-detail-filled' : 'job-detail-empty';
     return `
       <div class="job-card ${cardClass}${isPriority ? ' priority' : ''}">
-        ${isPriority ? `<div class="priority-badge">🚨 Forgangur</div>` : ''}
+        ${isPriority ? `<div class="priority-badge">${t('priority_badge')}</div>` : ''}
         <div style="margin-bottom:0.75rem;">
           <span class="recipient-tag ${recipientClass}">${recipientLabel}</span>
         </div>
         <div class="job-header">
           <div style="min-width:0;flex:1;">
-            <div class="job-title">${job.jobTypeLabel || '—'}</div>
+            <div class="job-title">${localizedJobTypeLabel(job)}</div>
             ${job.company ? `<div class="job-company">${job.company}</div>` : ''}
             ${futureDayLabel(job.date) ? `<div class="job-date-future">${futureDayLabel(job.date)}</div>` : `<div class="job-date">${job.date || '—'}</div>`}
           </div>
@@ -991,18 +1398,18 @@
         </div>
         <hr class="job-divider"/>
         <div class="job-detail ${cls(job.where)}">
-          <strong>Staðsetning</strong>
+          <strong>${t('label_stadsetning')}</strong>
           <span style="flex:1;">${job.where || '—'}</span>
-          ${job.where ? `<button class="copy-btn" onclick="copyAddress('${job.where.replace(/'/g, "\\'")}')">📋 Afrita</button>` : ''}
+          ${job.where ? `<button class="copy-btn" onclick="copyAddress('${job.where.replace(/'/g, "\\'")}')">${t('btn_afrita')}</button>` : ''}
         </div>
-        ${job.locationExtra ? `<div class="job-detail job-detail-filled"><strong>Annað</strong> ${job.locationExtra}</div>` : ''}
-        <div class="job-detail ${cls(job.phone)}"><strong>Sími</strong> ${job.phone ? `<a class="phone-link" href="tel:${job.phone}">${job.phone}</a>` : '—'}</div>
-        <div class="job-detail ${cls(job.contact)}"><strong>Tengill</strong> ${job.contact || '—'}</div>
+        ${job.locationExtra ? `<div class="job-detail job-detail-filled"><strong>${t('label_annad')}</strong> ${job.locationExtra}</div>` : ''}
+        <div class="job-detail ${cls(job.phone)}"><strong>${t('label_simi')}</strong> ${job.phone ? `<a class="phone-link" href="tel:${job.phone}">${job.phone}</a>` : '—'}</div>
+        <div class="job-detail ${cls(job.contact)}"><strong>${t('label_tengill')}</strong> ${job.contact || '—'}</div>
         <hr class="job-divider"/>
-        <div class="job-detail ${cls(job.materialLabel)}"><strong>Efni</strong> ${job.material === 'annad' ? `<span class="annad-tag">${job.materialLabel}</span>` : (job.materialLabel || '—')}</div>
-        <div class="job-detail ${cls(job.equipmentLabel)}"><strong>Tækjaþörf</strong> ${job.equipment === 'annad-equip' ? `<span class="annad-tag">${job.equipmentLabel}</span>` : (job.equipmentLabel || '—')}</div>
-        <div class="job-detail ${cls(job.notes)}"><strong>Athugasemd</strong> ${job.notes || '—'}</div>
-        ${job.image ? `<img src="${job.image}" class="job-image" alt="Mynd" />` : ''}
+        <div class="job-detail ${cls(job.materialLabel)}"><strong>${t('label_efni')}</strong> ${job.material === 'annad' ? `<span class="annad-tag">${job.materialLabel}</span>` : (job.materialLabel || '—')}</div>
+        <div class="job-detail ${cls(job.equipmentLabel)}"><strong>${t('label_tækjaþörf')}</strong> ${job.equipment === 'annad-equip' ? `<span class="annad-tag">${job.equipmentLabel}</span>` : (job.equipmentLabel || '—')}</div>
+        <div class="job-detail ${cls(job.notes)}"><strong>${t('label_athugasemd')}</strong> ${job.notes || '—'}</div>
+        ${job.image ? `<img src="${job.image}" class="job-image" alt="${t('label_mynd')}" />` : ''}
         ${doneBlock}
         ${actionBlock}
         ${delayFormBlock}
@@ -1015,7 +1422,7 @@
     if (!job) return;
     await fsSetJob({ ...job, driver: currentDriverName.toLowerCase().replace(/\s+/g,'_'), driverLabel: currentDriverName, status: 'accepted' });
     window.switchTab('vinnsla');
-    showToast('✓ Þú hefur tekið við beiðninni');
+    showToast(t('toast_claimed'));
   };
 
   window.markAccepted = async function(id) {
@@ -1024,7 +1431,7 @@
     if (!job) return;
     await fsSetJob({ ...job, status: 'accepted' });
     window.switchTab('vinnsla');
-    showToast('✓ Beiðni samþykkt');
+    showToast(t('toast_accepted'));
   };
 
   window.markOnWay = async function(id) {
@@ -1033,7 +1440,7 @@
     if (!job) return;
     await fsSetJob({ ...job, status: 'onway' });
     window.switchTab('vinnsla');
-    showToast('Merkt: Á leiðinni 🚛');
+    showToast(t('toast_onway'));
   };
 
   window.markNei = function(inputId) {
@@ -1332,7 +1739,7 @@
       for (const e of _extrasMap[id]) {
         const numEl = document.getElementById(`extra-num-${id}-${e.key}`);
         const num = numEl ? numEl.value.trim() : '';
-        if (!num) { showToast('Sláðu inn númer fyrir alla aukagáma (eða fjarlægðu þá)'); return; }
+        if (!num) { showToast(t('toast_sign_extras')); return; }
         extras.push({
           action: e.action,
           efni: e.efni || '',
@@ -1374,7 +1781,7 @@
     await fsSetJob(updated);
     window.switchTab('klarud');
     const anyKar = ['taka-kar','losa-kar','skipta-kari','vantar-kar'].includes(job.jobType) || ['taka-kar','losa-kar','skipta-kari','vantar-kar'].includes(job.jobType2 || '');
-    showToast('Lokið! ' + (anyKar ? 'Númer' : 'Gámanúmer') + ' skráð ✓');
+    showToast(anyKar ? t('toast_done_any') : t('toast_done_gami'));
   };
 
   // Reverse the rental state changes that the original markDone applied.
@@ -1470,7 +1877,7 @@
       for (const e of _extrasMap[id]) {
         const numEl = document.getElementById(`extra-num-${id}-${e.key}`);
         const num = numEl ? numEl.value.trim() : (e.number || '');
-        if (!num) { showToast('Sláðu inn númer fyrir alla aukagáma (eða fjarlægðu þá)'); return; }
+        if (!num) { showToast(t('toast_sign_extras')); return; }
         extras.push({
           action: e.action,
           efni: e.efni || '',
@@ -1512,7 +1919,7 @@
     _fixingDoneId = null;
     delete _extrasMap[id];
     await fsSetJob(updated);
-    showToast('Breytingar vistaðar ✓');
+    showToast(t('toast_save_changes'));
   };
 
   window.showDelayForm = function(id) {
@@ -1534,7 +1941,7 @@
     if (!job) return;
     _delayingJobId = null;
     await fsSetJob({ ...job, status: 'delayed', delayNote: note || null });
-    showToast('Beiðni frestað ⏸');
+    showToast(t('toast_delay_saved'));
   };
 
   window.resumeJob = async function(id) {
@@ -1544,15 +1951,15 @@
     const updated = { ...job, status: 'accepted' };
     delete updated.delayNote; delete updated.delayImage;
     await fsSetJob(updated);
-    showToast('Beiðni haldið áfram ▶');
+    showToast(t('toast_resumed'));
   };
 
   window.copyAddress = function(address) {
-    navigator.clipboard.writeText(address).then(() => showToast('Heimilisfang afritað!')).catch(() => {
+    navigator.clipboard.writeText(address).then(() => showToast(t('toast_address_copied'))).catch(() => {
       const el = document.createElement('textarea');
       el.value = address; document.body.appendChild(el); el.select();
       document.execCommand('copy'); document.body.removeChild(el);
-      showToast('Heimilisfang afritað!');
+      showToast(t('toast_address_copied'));
     });
   };
 
@@ -1603,12 +2010,10 @@
 
   window.openExtraPicker = function(jobId, isKar) {
     _currentExtraJobId = jobId;
-    const unit = isKar ? 'kar' : 'gám';
-    const unitCap = isKar ? 'Kar' : 'gám';
     const titleEl = document.getElementById('extra-modal-title');
     const promptEl = document.getElementById('extra-modal-prompt');
-    if (titleEl) titleEl.textContent = `Bæta við auka${unit}i`;
-    if (promptEl) promptEl.textContent = `Hvað ætlar þú að gera við þennan ${unit}?`;
+    if (titleEl) titleEl.textContent = isKar ? t('extra_modal_title_kari') : t('extra_modal_title_gami');
+    if (promptEl) promptEl.textContent = isKar ? t('extra_modal_prompt_kari') : t('extra_modal_prompt_gami');
     document.getElementById('extra-action-step').style.display = 'block';
     document.getElementById('extra-efni-step').style.display = 'none';
     document.getElementById('extra-efni-other').value = '';
@@ -1634,7 +2039,7 @@
     let efniLabel = '';
     if (efni === 'annad') {
       efniLabel = document.getElementById('extra-efni-other').value.trim();
-      if (!efniLabel) { showToast('Lýstu efninu'); return; }
+      if (!efniLabel) { showToast(t('toast_describe_material')); return; }
     }
     addExtraToJob(_currentExtraJobId, 'taka', efni, efniLabel);
     closeExtraPicker();
@@ -1654,14 +2059,14 @@
     renderAll();
   };
   function efniDisplayLabel(efni, efniLabel) {
-    if (efni === 'annad') return efniLabel || 'Annað';
-    if (efni === 'jarn') return 'Járn';
-    if (efni === 'timbur') return 'Timbur';
+    if (efni === 'annad') return efniLabel || t('label_annad');
+    if (efni === 'jarn') return t('extra_efni_jarn');
+    if (efni === 'timbur') return t('extra_efni_timbur');
     return '';
   }
   function extraRowLabel(e) {
     const color = e.action === 'taka' ? 'var(--rust)' : 'var(--green)';
-    const action = e.action === 'taka' ? 'TAKA' : 'SETJA';
+    const action = e.action === 'taka' ? t('extra_row_action_taka') : t('extra_row_action_setja');
     const efni = e.action === 'taka' ? ' · ' + efniDisplayLabel(e.efni, e.efniLabel).toUpperCase() : '';
     return `<span style="color:${color};font-weight:800;">${action}</span>${efni}`;
   }
@@ -1677,25 +2082,25 @@
       <h3 id="extra-modal-title" style="margin:0 0 0.4rem 0;font-size:1.05rem;">Bæta við aukagámi</h3>
       <p id="extra-modal-prompt" style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem;">Hvað ætlar þú að gera við þennan gám?</p>
       <button class="btn btn-rust btn-full" style="margin-bottom:0.5rem;padding:0.85rem 1rem;text-align:left;line-height:1.3;" onclick="extraPickAction('taka')">
-        <strong>Taka</strong><br/><small style="font-weight:400;font-size:0.78rem;opacity:0.9;">Fjarlægja gám af staðnum</small>
+        <strong data-lang-text="extra_action_taka">Taka</strong><br/><small style="font-weight:400;font-size:0.78rem;opacity:0.9;" data-lang-text="extra_action_taka_sub">Fjarlægja gám af staðnum</small>
       </button>
       <button class="btn btn-rust btn-full" style="padding:0.85rem 1rem;text-align:left;line-height:1.3;" onclick="extraPickAction('setja')">
-        <strong>Setja</strong><br/><small style="font-weight:400;font-size:0.78rem;opacity:0.9;">Setja gám á staðinn (tómur)</small>
+        <strong data-lang-text="extra_action_setja">Setja</strong><br/><small style="font-weight:400;font-size:0.78rem;opacity:0.9;" data-lang-text="extra_action_setja_sub">Setja gám á staðinn (tómur)</small>
       </button>
     </div>
 
     <!-- Step 2: Efni (only when taka) -->
     <div id="extra-efni-step" style="display:none;">
-      <h3 style="margin:0 0 0.4rem 0;font-size:1.05rem;">Hvað er í gámnum?</h3>
-      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem;">Efni gámsins sem þú ert að taka</p>
-      <button class="btn btn-rust btn-full" style="margin-bottom:0.5rem;padding:0.85rem 1rem;" onclick="extraPickEfni('jarn')">Járn</button>
-      <button class="btn btn-rust btn-full" style="margin-bottom:0.5rem;padding:0.85rem 1rem;" onclick="extraPickEfni('timbur')">Timbur</button>
+      <h3 style="margin:0 0 0.4rem 0;font-size:1.05rem;" data-lang-text="extra_efni_title">Hvað er í gámnum?</h3>
+      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem;" data-lang-text="extra_efni_prompt">Efni gámsins sem þú ert að taka</p>
+      <button class="btn btn-rust btn-full" style="margin-bottom:0.5rem;padding:0.85rem 1rem;" onclick="extraPickEfni('jarn')" data-lang-text="extra_efni_jarn">Járn</button>
+      <button class="btn btn-rust btn-full" style="margin-bottom:0.5rem;padding:0.85rem 1rem;" onclick="extraPickEfni('timbur')" data-lang-text="extra_efni_timbur">Timbur</button>
       <div style="margin-bottom:0.5rem;">
-        <label style="font-size:0.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:0.3rem;">Annað — lýstu</label>
-        <input type="text" id="extra-efni-other" placeholder="t.d. Kopar, ryðfrítt..." style="width:100%;padding:0.7rem 1rem;border:1.5px solid var(--mid);border-radius:8px;font-size:0.95rem;outline:none;" />
-        <button class="btn btn-rust btn-full" style="margin-top:0.5rem;padding:0.7rem;" onclick="extraPickEfni('annad')">Halda áfram með "Annað"</button>
+        <label style="font-size:0.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:0.3rem;" data-lang-text="extra_efni_annad_label">Annað — lýstu</label>
+        <input type="text" id="extra-efni-other" placeholder="t.d. Kopar, ryðfrítt..." data-lang-placeholder="extra_efni_annad_placeholder" style="width:100%;padding:0.7rem 1rem;border:1.5px solid var(--mid);border-radius:8px;font-size:0.95rem;outline:none;" />
+        <button class="btn btn-rust btn-full" style="margin-top:0.5rem;padding:0.7rem;" onclick="extraPickEfni('annad')" data-lang-text="extra_efni_annad_btn">Halda áfram með "Annað"</button>
       </div>
-      <button class="btn btn-mid btn-full" style="padding:0.7rem;" onclick="extraBackToAction()">← Til baka</button>
+      <button class="btn btn-mid btn-full" style="padding:0.7rem;" onclick="extraBackToAction()" data-lang-text="extra_back">← Til baka</button>
     </div>
   </div>
 </div>
