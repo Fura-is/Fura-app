@@ -47,6 +47,13 @@
     .theme-toggle:hover { color: #fff; }
     .lang-toggle { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.75); cursor: pointer; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.05em; padding: 0.25rem 0.55rem; border-radius: 4px; transition: all 0.2s; }
     .lang-toggle:hover { background: rgba(255,255,255,0.15); color: #fff; }
+    /* Always-visible floating lang toggle — works on light login/invite screens AND over the dark app header */
+    .lang-toggle-floating { position: fixed; top: 0.75rem; right: 0.75rem; z-index: 300;
+      background: #fff; color: var(--ink); border: 1.5px solid var(--mid); cursor: pointer;
+      font-size: 0.78rem; font-weight: 800; letter-spacing: 0.05em;
+      padding: 0.4rem 0.7rem; border-radius: 6px; transition: all 0.2s;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.18); }
+    .lang-toggle-floating:hover { background: var(--warm); }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
       background: var(--page-bg);
@@ -334,6 +341,9 @@
 </head>
 <body>
 
+<!-- Always-visible language toggle (shown on login/invite; hidden when app header is visible) -->
+<button class="lang-toggle-floating" id="lang-toggle-floating" onclick="toggleLang()" aria-label="Language" title="Language">IS</button>
+
 <!-- INVITE GATE -->
 <div id="invite-screen">
   <div class="login-box">
@@ -501,6 +511,7 @@
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     document.getElementById('header-name').textContent = name;
+    applyLang();
     renderAll();
   }
 
@@ -917,8 +928,17 @@
   function applyLang() {
     try {
       document.documentElement.setAttribute('lang', _lang);
+      const label = _lang === 'en' ? 'EN' : 'IS';
       const btn = document.getElementById('lang-toggle-btn');
-      if (btn) btn.textContent = _lang === 'en' ? 'EN' : 'IS';
+      if (btn) btn.textContent = label;
+      const floatBtn = document.getElementById('lang-toggle-floating');
+      if (floatBtn) {
+        floatBtn.textContent = label;
+        // Hide the floating one when the in-app header's own toggle is visible
+        const appEl = document.getElementById('app');
+        const appVisible = appEl && getComputedStyle(appEl).display !== 'none';
+        floatBtn.style.display = appVisible ? 'none' : 'block';
+      }
       // Walk every element declaring a data-lang-* attribute.
       document.querySelectorAll('[data-lang-text]').forEach(el => {
         el.textContent = t(el.getAttribute('data-lang-text'));
@@ -1004,6 +1024,7 @@
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     document.getElementById('header-name').textContent = approved.name;
+    applyLang();
     renderAll();
   };
 
@@ -1015,6 +1036,7 @@
     document.getElementById('login-name').value = '';
     document.getElementById('login-password').value = '';
     hideAllMsgs();
+    applyLang();
   };
 
   document.getElementById('login-password').addEventListener('keydown', e => { if (e.key==='Enter') window.doLogin(); });
