@@ -708,7 +708,7 @@
             <input type="text" id="edit-gamanumer-settur" />
           </div>
           <div id="em-extras-wrap" style="margin-top:0.6rem;"></div>
-          <button type="button" id="em-add-extra-btn" class="add-extra-btn" style="display:none;margin-top:0.6rem;" onclick="if(_editingJobId)openExtraPickerDir(_editingJobId)">＋ Bæta við aukagámi</button>
+          <button type="button" id="em-add-extra-btn" class="add-extra-btn" style="display:none;margin-top:0.6rem;" onclick="addExtraInEdit()">＋ Bæta við aukagámi</button>
         </div>
 
         <div class="send-row">
@@ -1000,7 +1000,8 @@
   <div class="modal-box" style="max-width:640px;">
     <div class="modal-title">🔔 Vikuleg staðfesting</div>
     <div style="font-size:0.88rem;color:var(--muted);margin-bottom:0.85rem;">
-      Farðu í gegnum listann. Ef gámur/kar er ennþá úti hjá fyrirtækinu → <strong>Staðfest ennþá</strong>. Ef ekki → <strong>Breyta stöðu</strong>.
+      Elstu 25 gámar/kör sem hafa verið úti í > 30 daga (mest drift-hætta).
+      Ef ennþá úti hjá fyrirtækinu → <strong>Staðfest ennþá</strong>. Ef ekki → <strong>Breyta stöðu</strong>.
     </div>
     <div id="reconcile-list" style="max-height:65vh;overflow-y:auto;"></div>
     <div class="modal-actions">
@@ -1351,13 +1352,16 @@
     document.getElementById('app').style.display = 'block';
     document.getElementById('job-date').value = todayISO();
     _loggedIn = true;
-    renderJobsList();
-    updateRequestsBadge();
-    updateUtleigaCount();
-    updateKorCount();
-    updateReconcileBanner();
-    // Kick off client-side audit-log cleanup (throttled to once/day)
-    pruneOldAuditEntries();
+    // Each of these is isolated — a failure in one must NOT stop the others.
+    // This is critical because a broken helper (e.g. reconciliation) could
+    // otherwise leave the UI in a frozen state where nothing renders or clicks.
+    const safe = (label, fn) => { try { fn(); } catch (err) { console.warn(label + ' failed', err); } };
+    safe('renderJobsList', renderJobsList);
+    safe('updateRequestsBadge', updateRequestsBadge);
+    safe('updateUtleigaCount', updateUtleigaCount);
+    safe('updateKorCount', updateKorCount);
+    safe('updateReconcileBanner', updateReconcileBanner);
+    safe('pruneOldAuditEntries', pruneOldAuditEntries);
   }
   const SESSION_MAX_MS = 7 * 24 * 60 * 60 * 1000; // 1 week
   window.doLogin = function() {
@@ -2756,30 +2760,77 @@
   // Every Tuesday a subtle banner prompts the director to verify each úti gám/kar
   // is still where the app thinks it is. Confirmations write to lastConfirmedAt
   // (per container/kar) so we don't re-prompt for a week.
-  function isTuesday() { return new Date().getDay() === 2; }
-  function daysSinceConfirm(item) {
-    if (!item.lastConfirmedAt) return 999;
-    return Math.floor((Date.now() - new Date(item.lastConfirmedAt).getTime()) / 86400000);
+  function isTuesday() { try { return new Date().getDay() === 2; } catch (_) { return false; } }
+  // Robust date-diff: handles ISO strings, Firestore Timestamps, and null. Never throws.
+  function daysBetween(rawA, rawB) {
+    try {
+      const parse = (v) => {
+        if (!v) return null;
+        if (typeof v === 'string') {
+          // Accept "YYYY-MM-DD" or full ISO
+          const s = v.length === 10 ? v + 'T00:00:00' : v;
+          const t = new Date(s).getTime();
+          return isNaN(t) ? null : t;
+        }
+        if (typeof v === 'object' && typeof v.toDate === 'function') {
+          try { return v.toDate().getTime(); } catch (_) { return null; }
+        }
+        if (typeof v === 'object' && typeof v.seconds === 'number') return v.seconds * 1000;
+        return null;
+      };
+      const a = parse(rawA);
+      const b = parse(rawB);
+      if (a === null || b === null) return null;
+      return Math.floor((b - a) / 86400000);
+    } catch (_) { return null; }
   }
+  function daysSincePlaced(item) {
+    const d = daysBetween(item && item.placedAt, Date.now());
+    return d === null ? 0 : Math.max(0, d);
+  }
+  function daysSinceConfirm(item) {
+    const d = daysBetween(item && item.lastConfirmedAt, Date.now());
+    return d === null ? 999 : Math.max(0, d);
+  }
+  const RECONCILE_MIN_DAYS_OUT = 30;
+  const RECONCILE_MAX_PER_WEEK = 25;
   function unconfirmedUti() {
-    // Gámar/kör úti sem hafa ekki verið staðfest í > 7 daga
-    const out = [];
-    for (const c of appData.containers) {
-      if (c.status === 'utleigu' && daysSinceConfirm(c) >= 7) out.push({ type: 'container', item: c });
+    try {
+      const out = [];
+      const list = Array.isArray(appData.containers) ? appData.containers : [];
+      for (const c of list) {
+        if (!c || c.status !== 'utleigu') continue;
+        if (daysSincePlaced(c) < RECONCILE_MIN_DAYS_OUT) continue;
+        if (daysSinceConfirm(c) < 7) continue;
+        out.push({ type: 'container', item: c });
+      }
+      const kList = Array.isArray(appData.kars) ? appData.kars : [];
+      for (const k of kList) {
+        if (!k || k.status !== 'utleigu') continue;
+        if (daysSincePlaced(k) < RECONCILE_MIN_DAYS_OUT) continue;
+        if (daysSinceConfirm(k) < 7) continue;
+        out.push({ type: 'kar', item: k });
+      }
+      out.sort((a, b) => String(a.item.placedAt || '').localeCompare(String(b.item.placedAt || '')));
+      return out.slice(0, RECONCILE_MAX_PER_WEEK);
+    } catch (err) {
+      console.warn('unconfirmedUti failed', err);
+      return [];
     }
-    for (const k of appData.kars) {
-      if (k.status === 'utleigu' && daysSinceConfirm(k) >= 7) out.push({ type: 'kar', item: k });
-    }
-    return out;
   }
   function updateReconcileBanner() {
-    const banner = document.getElementById('reconcile-banner');
-    if (!banner) return;
-    if (!isTuesday()) { banner.style.display = 'none'; return; }
-    const items = unconfirmedUti();
-    if (items.length === 0) { banner.style.display = 'none'; return; }
-    banner.style.display = 'flex';
-    document.getElementById('reconcile-banner-count').textContent = items.length;
+    try {
+      const banner = document.getElementById('reconcile-banner');
+      if (!banner) return;
+      if (!isTuesday()) { banner.style.display = 'none'; return; }
+      const items = unconfirmedUti();
+      if (items.length === 0) { banner.style.display = 'none'; return; }
+      banner.style.display = 'flex';
+      const countEl = document.getElementById('reconcile-banner-count');
+      if (countEl) countEl.textContent = items.length;
+    } catch (err) {
+      console.warn('updateReconcileBanner failed', err);
+    }
   }
   window.openReconcileModal = function() {
     renderReconcileList();
@@ -2791,11 +2842,8 @@
   };
   function renderReconcileList() {
     const listEl = document.getElementById('reconcile-list');
-    const items = unconfirmedUti().sort((a, b) => {
-      const dA = a.item.placedAt || '';
-      const dB = b.item.placedAt || '';
-      return dA.localeCompare(dB); // oldest first
-    });
+    if (!listEl) return;
+    const items = unconfirmedUti(); // already sorted + capped
     if (items.length === 0) {
       listEl.innerHTML = `<div style="padding:1rem;text-align:center;color:var(--green);font-weight:700;">✓ Allt komið í lag</div>`;
       return;
@@ -5281,6 +5329,13 @@
   // Numbers stay in the array (not just inputs) so we can move between edit views.
   let _extrasMapDir = {};
   let _currentExtraJobIdDir = null;
+
+  // Thin wrapper so the "Bæta við aukagámi" button inside the Breyta-form can
+  // reach module-scope _editingJobId (inline onclick runs in global scope and
+  // can't see module variables directly).
+  window.addExtraInEdit = function() {
+    if (_editingJobId) openExtraPickerDir(_editingJobId);
+  };
 
   window.openExtraPickerDir = function(jobId) {
     _currentExtraJobIdDir = jobId;
