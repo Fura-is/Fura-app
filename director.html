@@ -647,6 +647,10 @@
           <div class="option-group" id="job-material-group">
             <button type="button" class="option-btn" onclick="selectMaterial(this, 'jarn')">Járn</button>
             <button type="button" class="option-btn" onclick="selectMaterial(this, 'timbur')">Timbur</button>
+            <button type="button" class="option-btn" onclick="selectMaterial(this, 'rydfritt')">Ryðfrítt stál</button>
+            <button type="button" class="option-btn" onclick="selectMaterial(this, 'al')">Ál</button>
+            <button type="button" class="option-btn" onclick="selectMaterial(this, 'dekk')">Dekk</button>
+            <button type="button" class="option-btn" onclick="selectMaterial(this, 'kaplar')">Kaplar</button>
             <button type="button" class="option-btn annad-btn" onclick="selectMaterial(this, 'annad')">Annað</button>
           </div>
           <div class="other-input" id="job-material-other-wrap">
@@ -903,6 +907,10 @@
             <button type="button" class="option-btn" onclick="cmPick('cm-efni-group', this, '')">Ekki skráð</button>
             <button type="button" class="option-btn" onclick="cmPick('cm-efni-group', this, 'jarn')">Járn</button>
             <button type="button" class="option-btn" onclick="cmPick('cm-efni-group', this, 'timbur')">Timbur</button>
+            <button type="button" class="option-btn" onclick="cmPick('cm-efni-group', this, 'rydfritt')">Ryðfrítt stál</button>
+            <button type="button" class="option-btn" onclick="cmPick('cm-efni-group', this, 'al')">Ál</button>
+            <button type="button" class="option-btn" onclick="cmPick('cm-efni-group', this, 'dekk')">Dekk</button>
+            <button type="button" class="option-btn" onclick="cmPick('cm-efni-group', this, 'kaplar')">Kaplar</button>
             <button type="button" class="option-btn" onclick="cmPick('cm-efni-group', this, 'annad')">Annað</button>
           </div>
           <div class="other-input" id="cm-efni-other-wrap"><input type="text" id="cm-efni-other" placeholder="Lýstu efninu..." /></div>
@@ -965,6 +973,10 @@
             <button type="button" class="option-btn" onclick="kmPick('km-efni-group', this, '')">Ekki skráð</button>
             <button type="button" class="option-btn" onclick="kmPick('km-efni-group', this, 'jarn')">Járn</button>
             <button type="button" class="option-btn" onclick="kmPick('km-efni-group', this, 'timbur')">Timbur</button>
+            <button type="button" class="option-btn" onclick="kmPick('km-efni-group', this, 'rydfritt')">Ryðfrítt stál</button>
+            <button type="button" class="option-btn" onclick="kmPick('km-efni-group', this, 'al')">Ál</button>
+            <button type="button" class="option-btn" onclick="kmPick('km-efni-group', this, 'dekk')">Dekk</button>
+            <button type="button" class="option-btn" onclick="kmPick('km-efni-group', this, 'kaplar')">Kaplar</button>
             <button type="button" class="option-btn" onclick="kmPick('km-efni-group', this, 'annad')">Annað</button>
           </div>
           <div class="other-input" id="km-efni-other-wrap"><input type="text" id="km-efni-other" placeholder="Lýstu efninu..." /></div>
@@ -1770,7 +1782,7 @@
 
   const sizeLabels = { '15m3': '15 m³', 'litill': 'Lítill', 'stor': 'Stór' };
   const sergerdLabels = { 'timburgamur': 'Timburgámur', 'lokadur': 'Lokaður' };
-  const efniLabels = { 'jarn': 'Járn', 'timbur': 'Timbur', 'annad': 'Annað' };
+  const efniLabels = { 'jarn': 'Járn', 'timbur': 'Timbur', 'rydfritt': 'Ryðfrítt stál', 'al': 'Ál', 'dekk': 'Dekk', 'kaplar': 'Kaplar', 'annad': 'Annað' };
   // Painted number ignoring a trailing letter suffix: 30A→30, 30B→30, 2→2.
   const containerBaseNum = (id) => { const s = String(id).replace(/[a-zA-Z]+$/, '').trim(); return s || String(id); };
 
@@ -2398,8 +2410,8 @@
     document.getElementById('cm-placed').value = c.placedAt || todayISO();
     document.getElementById('cm-note').value = c.note || '';
     if (c.efni) {
-      const map = { jarn: 'Járn', timbur: 'Timbur', annad: 'Annað' };
-      const btn = [...document.querySelectorAll('#cm-efni-group .option-btn')].find(b => map[c.efni] === b.textContent);
+      const wanted = (efniLabels[c.efni] || '').trim();
+      const btn = [...document.querySelectorAll('#cm-efni-group .option-btn')].find(b => b.textContent.trim() === wanted);
       if (btn) cmPick('cm-efni-group', btn, c.efni);
       if (c.efni === 'annad') document.getElementById('cm-efni-other').value = c.efniLabel || '';
     }
@@ -2559,7 +2571,8 @@
       if (heimaBtn) kmPickStatus(heimaBtn, 'heima');
     }
     if (k.efni) {
-      const efniBtn = [...document.querySelectorAll('#km-efni-group .option-btn')].find(b => (b.textContent === 'Járn' && k.efni === 'jarn') || (b.textContent === 'Timbur' && k.efni === 'timbur') || (b.textContent === 'Annað' && k.efni === 'annad'));
+      const wanted = (efniLabels[k.efni] || '').trim();
+      const efniBtn = [...document.querySelectorAll('#km-efni-group .option-btn')].find(b => b.textContent.trim() === wanted);
       if (efniBtn) kmPick('km-efni-group', efniBtn, k.efni);
       if (k.efni === 'annad') document.getElementById('km-efni-other').value = k.efniLabel || '';
     }
@@ -3119,7 +3132,16 @@
     if (!note) return { efni: '', efniLabel: '', remainingNote: '' };
     const n = note.toLowerCase();
     if (n.includes('ryðfrítt') || n.includes('rydfritt') || n.includes('ryðfrí')) {
-      return { efni: 'annad', efniLabel: 'Ryðfrítt', remainingNote: note.replace(/ryð?frítt?\.?/gi, '').trim() };
+      return { efni: 'rydfritt', efniLabel: '', remainingNote: note.replace(/ryð?frítt?( stál)?\.?/gi, '').trim() };
+    }
+    if (n.includes('kapla') || n.includes('kaplar')) {
+      return { efni: 'kaplar', efniLabel: '', remainingNote: note.replace(/kaplar?\.?/gi, '').trim() };
+    }
+    if (n.match(/\bál\b/) || n.includes('álgám')) {
+      return { efni: 'al', efniLabel: '', remainingNote: note.replace(/\bálg?á?m?u?r?\.?/gi, '').trim() };
+    }
+    if (n.includes('dekk') && !n.includes('timbur')) {
+      return { efni: 'dekk', efniLabel: '', remainingNote: note.replace(/dekkj?a?r?\.?/gi, '').trim() };
     }
     if (n.includes('timbur')) {
       let rem = note.replace(/timbur(-dekk)?\.?/gi, '').trim();
@@ -3459,7 +3481,7 @@
     const approvedDriver = d.approvedDrivers.find(dr => dr.id === driver);
 
     const jobTypeLabels = { sekja: 'Taka gám', losa: 'Losa gám', skipta: 'Skipta gám', fara: 'Vantar gám', 'taka-kar': 'Taka kar', 'losa-kar': 'Losa kar', 'skipta-kari': 'Skipta kari', 'vantar-kar': 'Vantar kar', 'annad-type': document.getElementById('job-type-other').value.trim() };
-    const materialLabels = { jarn: 'Járn', timbur: 'Timbur', annad: document.getElementById('job-material-other').value.trim() };
+    const materialLabels = { jarn: 'Járn', timbur: 'Timbur', rydfritt: 'Ryðfrítt stál', al: 'Ál', dekk: 'Dekk', kaplar: 'Kaplar', annad: document.getElementById('job-material-other').value.trim() };
     const equipmentLabels = { 'stor-gamur': 'Stór gámur', 'litill-gamur': 'Lítill gámur', krani: 'Krani', pallbill: 'Pallbíll', trailer: 'Trailer', 'annad-equip': document.getElementById('job-equipment-other').value.trim() };
 
     // Gámanúmer edit fields (only shown when editing a job that already had numbers)

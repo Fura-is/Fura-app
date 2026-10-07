@@ -682,6 +682,10 @@
       extra_efni_prompt: 'Efni gámsins sem þú ert að taka',
       extra_efni_jarn: 'Járn',
       extra_efni_timbur: 'Timbur',
+      extra_efni_rydfritt: 'Ryðfrítt stál',
+      extra_efni_al: 'Ál',
+      extra_efni_dekk: 'Dekk',
+      extra_efni_kaplar: 'Kaplar',
       extra_efni_annad_label: 'Annað — lýstu',
       extra_efni_annad_placeholder: 't.d. Kopar, ryðfrítt...',
       extra_efni_annad_btn: 'Halda áfram með "Annað"',
@@ -851,6 +855,10 @@
       extra_efni_prompt: 'Material of the container you are picking up',
       extra_efni_jarn: 'Steel',
       extra_efni_timbur: 'Wood',
+      extra_efni_rydfritt: 'Stainless steel',
+      extra_efni_al: 'Aluminium',
+      extra_efni_dekk: 'Tires',
+      extra_efni_kaplar: 'Cables',
       extra_efni_annad_label: 'Other — describe',
       extra_efni_annad_placeholder: 'e.g. Copper, stainless...',
       extra_efni_annad_btn: 'Continue with "Other"',
@@ -1307,7 +1315,7 @@
       }
       if (job.extraContainers && job.extraContainers.length > 0) {
         for (const e of job.extraContainers) {
-          const efniTxt = e.action === 'taka' ? (e.efni === 'annad' ? (e.efniLabel || t('label_annad')) : (e.efni === 'jarn' ? t('extra_efni_jarn') : (e.efni === 'timbur' ? t('extra_efni_timbur') : ''))) : '';
+          const efniTxt = e.action === 'taka' ? efniDisplayLabel(e.efni, e.efniLabel) : '';
           const lbl = e.action === 'taka' ? `${t('extra_aukagam_tekinn')}${efniTxt ? ' · ' + efniTxt : ''}` : t('extra_aukagam_settur');
           doneBlock += `<div class="job-detail"><strong>${lbl}</strong> <span style="color:var(--rust);font-weight:700;">${e.number || '—'}</span></div>`;
         }
@@ -2081,10 +2089,11 @@
     renderAll();
   };
   function efniDisplayLabel(efni, efniLabel) {
+    if (!efni) return '';
     if (efni === 'annad') return efniLabel || t('label_annad');
-    if (efni === 'jarn') return t('extra_efni_jarn');
-    if (efni === 'timbur') return t('extra_efni_timbur');
-    return '';
+    const key = 'extra_efni_' + efni;
+    const v = (LANG[_lang] && LANG[_lang][key]) || (LANG.is && LANG.is[key]);
+    return v || '';
   }
   function extraRowLabel(e) {
     const color = e.action === 'taka' ? 'var(--rust)' : 'var(--green)';
@@ -2117,6 +2126,10 @@
       <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem;" data-lang-text="extra_efni_prompt">Efni gámsins sem þú ert að taka</p>
       <button class="btn btn-rust btn-full" style="margin-bottom:0.5rem;padding:0.85rem 1rem;" onclick="extraPickEfni('jarn')" data-lang-text="extra_efni_jarn">Járn</button>
       <button class="btn btn-rust btn-full" style="margin-bottom:0.5rem;padding:0.85rem 1rem;" onclick="extraPickEfni('timbur')" data-lang-text="extra_efni_timbur">Timbur</button>
+      <button class="btn btn-rust btn-full" style="margin-bottom:0.5rem;padding:0.85rem 1rem;" onclick="extraPickEfni('rydfritt')" data-lang-text="extra_efni_rydfritt">Ryðfrítt stál</button>
+      <button class="btn btn-rust btn-full" style="margin-bottom:0.5rem;padding:0.85rem 1rem;" onclick="extraPickEfni('al')" data-lang-text="extra_efni_al">Ál</button>
+      <button class="btn btn-rust btn-full" style="margin-bottom:0.5rem;padding:0.85rem 1rem;" onclick="extraPickEfni('dekk')" data-lang-text="extra_efni_dekk">Dekk</button>
+      <button class="btn btn-rust btn-full" style="margin-bottom:0.5rem;padding:0.85rem 1rem;" onclick="extraPickEfni('kaplar')" data-lang-text="extra_efni_kaplar">Kaplar</button>
       <div style="margin-bottom:0.5rem;">
         <label style="font-size:0.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:0.3rem;" data-lang-text="extra_efni_annad_label">Annað — lýstu</label>
         <input type="text" id="extra-efni-other" placeholder="t.d. Kopar, ryðfrítt..." data-lang-placeholder="extra_efni_annad_placeholder" style="width:100%;padding:0.7rem 1rem;border:1.5px solid var(--mid);border-radius:8px;font-size:0.95rem;outline:none;" />
