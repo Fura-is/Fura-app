@@ -5333,13 +5333,20 @@
     const archived = d.jobs.filter(j => j.status === 'archived');
 
     const matches = archived.filter(j => {
-      // Text filter — gámanúmer matches EXACTLY (so "2" finnur ekki 12/20/200),
-      // company name allows partial match.
+      // Text filter — gámanúmer matches EXACTLY (so "2" finnur ekki 12/20/200).
+      // Pure-numeric queries ONLY match container numbers (so "1" doesn't light up
+      // every company that has "1" in its name). Text queries also match company.
       if (q) {
-        const nums = [j.containerNumber, j.containerNumberTekinn, j.containerNumberSettur]
-          .filter(Boolean).map(x => String(x).toLowerCase().trim());
+        // Collect every container/kar number this beiðni touches: primary + secondary
+        // (jobType2 blönduð beiðni) + öll aukagáma-númer.
+        const nums = [
+          j.containerNumber, j.containerNumberTekinn, j.containerNumberSettur,
+          j.containerNumber2, j.containerNumberTekinn2, j.containerNumberSettur2,
+          ...(Array.isArray(j.extraContainers) ? j.extraContainers.map(e => e && e.number) : [])
+        ].filter(Boolean).map(x => String(x).toLowerCase().trim());
         const numHit = nums.includes(q);
-        const companyHit = j.company && j.company.toLowerCase().includes(q);
+        const isNumeric = /^[0-9-]+$/.test(q); // digits + optional hyphen (XX-XXX kar format)
+        const companyHit = !isNumeric && j.company && j.company.toLowerCase().includes(q);
         if (!numHit && !companyHit) return false;
       }
       // Date range filter — uses the job's own date field
