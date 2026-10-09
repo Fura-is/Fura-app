@@ -535,6 +535,10 @@
     .geymsla-search-wrap { position: relative; margin-bottom: 1.25rem; }
     .geymsla-search-wrap input { width: 100%; padding: 0.75rem 1rem 0.75rem 2.75rem; border: 1.5px solid var(--mid); border-radius: 8px; font-size: 0.95rem; background: var(--white); color: var(--ink); outline: none; transition: border-color 0.2s; }
     .geymsla-search-wrap input:focus { border-color: var(--rust); }
+    .geymsla-filter-chips { display: flex; gap: 0.4rem; margin: -0.5rem 0 1rem; flex-wrap: wrap; }
+    .geymsla-chip { background: var(--white); color: var(--muted); border: 1.5px solid var(--mid); border-radius: 20px; padding: 0.35rem 0.9rem; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+    .geymsla-chip:hover { color: var(--ink); border-color: var(--muted); }
+    .geymsla-chip.active { background: var(--rust); color: #fff; border-color: var(--rust); }
     .geymsla-search-icon { position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
     .geymsla-date-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
     .geymsla-date-field { display: flex; flex-direction: column; gap: 0.25rem; flex: 1; min-width: 120px; }
@@ -777,6 +781,11 @@
       <div class="geymsla-search-wrap">
         <svg class="geymsla-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" id="geymsla-search" placeholder="Leita eftir fyrirtæki, gámanúmeri eða karnúmeri..." oninput="renderGeymsla()" />
+      </div>
+      <div class="geymsla-filter-chips" role="group" aria-label="Hvað á að leita að">
+        <button type="button" class="geymsla-chip active" data-scope="all" onclick="setGeymslaScope('all')">Allt</button>
+        <button type="button" class="geymsla-chip" data-scope="number" onclick="setGeymslaScope('number')">Gámanúmer</button>
+        <button type="button" class="geymsla-chip" data-scope="company" onclick="setGeymslaScope('company')">Fyrirtæki</button>
       </div>
       <div class="geymsla-date-row">
         <div class="geymsla-date-field">
@@ -5322,9 +5331,16 @@
     document.getElementById('geymsla-search').value = '';
     document.getElementById('geymsla-from').value = '';
     document.getElementById('geymsla-to').value = '';
-    renderGeymsla();
+    if (typeof setGeymslaScope === 'function') setGeymslaScope('all');
+    else renderGeymsla();
   };
 
+  let _geymslaScope = 'all'; // 'all' | 'number' | 'company'
+  window.setGeymslaScope = function(scope) {
+    _geymslaScope = scope;
+    document.querySelectorAll('.geymsla-chip').forEach(c => c.classList.toggle('active', c.dataset.scope === scope));
+    renderGeymsla();
+  };
   function renderGeymsla() {
     const d = getData();
     const q = (document.getElementById('geymsla-search').value || '').toLowerCase().trim();
@@ -5333,9 +5349,9 @@
     const archived = d.jobs.filter(j => j.status === 'archived');
 
     const matches = archived.filter(j => {
-      // Text filter — gámanúmer matches EXACTLY (so "2" finnur ekki 12/20/200).
-      // Pure-numeric queries ONLY match container numbers (so "1" doesn't light up
-      // every company that has "1" in its name). Text queries also match company.
+      // Text filter honors the scope chip: 'all' | 'number' | 'company'.
+      // Gámanúmer matches EXACTLY (so '2' finnur ekki 12/20/200). Company name
+      // matches as substring.
       if (q) {
         // Collect every container/kar number this beiðni touches: primary + secondary
         // (jobType2 blönduð beiðni) + öll aukagáma-númer.
@@ -5345,9 +5361,10 @@
           ...(Array.isArray(j.extraContainers) ? j.extraContainers.map(e => e && e.number) : [])
         ].filter(Boolean).map(x => String(x).toLowerCase().trim());
         const numHit = nums.includes(q);
-        const isNumeric = /^[0-9-]+$/.test(q); // digits + optional hyphen (XX-XXX kar format)
-        const companyHit = !isNumeric && j.company && j.company.toLowerCase().includes(q);
-        if (!numHit && !companyHit) return false;
+        const companyHit = j.company && j.company.toLowerCase().includes(q);
+        if (_geymslaScope === 'number'  && !numHit) return false;
+        if (_geymslaScope === 'company' && !companyHit) return false;
+        if (_geymslaScope === 'all'     && !numHit && !companyHit) return false;
       }
       // Date range filter — uses the job's own date field
       if (fromVal && j.date && j.date < fromVal) return false;
