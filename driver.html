@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Fura — Bílstjóri</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -36,6 +38,15 @@
     [data-theme="dark"] .msg-pending { background: #4a3e1c; color: #e8c870; }
     [data-theme="dark"] .msg-success { background: #2a3a2e; color: #80c090; }
     [data-theme="dark"] .job-card { box-shadow: 0 2px 10px rgba(0,0,0,0.4); }
+    .sameining-banner { background: linear-gradient(90deg, #fef3c7 0%, #fde68a 100%); border: 1.5px solid #f59e0b; border-radius: 8px; padding: 0.6rem 0.8rem; margin: 0 0 0.75rem 0; display: flex; align-items: center; gap: 0.5rem; animation: lightbulbPulse 1.4s ease-in-out infinite; }
+    .sameining-banner-text { flex: 1; font-size: 0.82rem; font-weight: 700; color: #78350f; }
+    .sameining-banner-text small { display: block; font-size: 0.74rem; font-weight: 500; color: #92400e; margin-top: 0.1rem; }
+    .sameining-banner-btn { background: #f59e0b; color: #fff; border: none; padding: 0.45rem 0.8rem; border-radius: 6px; font-weight: 800; font-size: 0.78rem; cursor: pointer; white-space: nowrap; }
+    .sameining-banner-btn:hover { background: #d97706; }
+    @keyframes lightbulbPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); } 50% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); } }
+    .sameining-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 250; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .sameining-modal-box { background: #fff; border-radius: 14px; padding: 1.25rem; max-width: 460px; width: 100%; max-height: 90vh; overflow-y: auto; }
+    .sameining-modal-map { width: 100%; height: 240px; border-radius: 8px; overflow: hidden; margin: 0.75rem 0; border: 1px solid var(--mid); }
     [data-theme="dark"] .copy-btn { background: var(--mid); color: var(--ink); }
     .recipient-tag { font-size:0.72rem; font-weight:800; padding:0.25rem 0.7rem; border-radius:20px; letter-spacing:0.04em; text-transform:uppercase; border:1.5px solid transparent; display:inline-block; }
     .recipient-all { background:#fff3cd; color:#856404; border-color:#f0d060; }
@@ -1418,6 +1429,7 @@
         <div style="margin-bottom:0.75rem;">
           <span class="recipient-tag ${recipientClass}">${recipientLabel}</span>
         </div>
+        ${sameiningBanner(job)}
         <div class="job-header">
           <div style="min-width:0;flex:1;">
             <div class="job-title">${localizedJobTypeLabel(job)}</div>
@@ -2101,6 +2113,180 @@
     const efni = e.action === 'taka' ? ' · ' + efniDisplayLabel(e.efni, e.efniLabel).toUpperCase() : '';
     return `<span style="color:${color};font-weight:800;">${action}</span>${efni}`;
   }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // HUGMYNDAVÉL — Sameining (driver-side)
+  // ══════════════════════════════════════════════════════════════════════════
+  const DRV_FURA_BASE = { lat: 64.0632, lng: -21.9284 };
+  const DRV_KRANI_EQUIP = new Set(['krani']);
+  const DRV_GAM_EQUIP = new Set(['stor-gamur', 'litill-gamur']);
+  const DRV_KAR_TYPES = new Set(['taka-kar','losa-kar','skipta-kari','vantar-kar']);
+  function drvVehicleClass(job) {
+    if (DRV_KRANI_EQUIP.has(job.equipment)) return 'krani';
+    if (DRV_KAR_TYPES.has(job.jobType) || DRV_KAR_TYPES.has(job.jobType2 || '')) return 'krani';
+    if (DRV_GAM_EQUIP.has(job.equipment)) return 'gamabill';
+    if (job.equipment === 'pallbill' || job.equipment === 'trailer') return 'gamabill';
+    return null;
+  }
+  function drvKmBetween(a, b) {
+    if (!a || !b || a.lat == null || b.lat == null) return 0;
+    const R = 6371;
+    const dLat = (b.lat - a.lat) * Math.PI/180;
+    const dLng = (b.lng - a.lng) * Math.PI/180;
+    const sa = Math.sin(dLat/2)**2 + Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLng/2)**2;
+    return 2*R*Math.asin(Math.sqrt(sa));
+  }
+  function drvMinutes(points) {
+    let km = 0;
+    for (let i = 1; i < points.length; i++) km += drvKmBetween(points[i-1], points[i]);
+    return { km, minutes: (km/40)*60 + (points.length-2)*8 };
+  }
+  // For a given job id, find its best partner job (if any) + saving info
+  function findPartnerFor(jobId) {
+    const d = getData();
+    const target = (d.jobs || []).find(j => j.id === jobId);
+    if (!target || target.lat == null || drvVehicleClass(target) == null) return null;
+    const candidates = (d.jobs || []).filter(j =>
+      j.id !== jobId &&
+      (j.status === 'new' || !j.status) &&
+      (j.driver === 'all' || !j.driver) &&
+      j.lat != null && j.lng != null &&
+      drvVehicleClass(j) === drvVehicleClass(target)
+    );
+    let best = null;
+    for (const c of candidates) {
+      const pA = { lat: target.lat, lng: target.lng };
+      const pB = { lat: c.lat, lng: c.lng };
+      const baseA = drvMinutes([DRV_FURA_BASE, pA, DRV_FURA_BASE]);
+      const baseB = drvMinutes([DRV_FURA_BASE, pB, DRV_FURA_BASE]);
+      const bAB = drvMinutes([DRV_FURA_BASE, pA, pB, DRV_FURA_BASE]);
+      const bBA = drvMinutes([DRV_FURA_BASE, pB, pA, DRV_FURA_BASE]);
+      const bundle = bAB.minutes <= bBA.minutes ? { ...bAB, order: [target, c] } : { ...bBA, order: [c, target] };
+      const savingsMin = (baseA.minutes + baseB.minutes) - bundle.minutes;
+      const savingsKm = (baseA.km + baseB.km) - bundle.km;
+      if (savingsMin < 10) continue;
+      if (!best || savingsMin > best.savingsMin) best = { partner: c, savingsMin, savingsKm, order: bundle.order };
+    }
+    return best;
+  }
+
+  // Called from jobCard — returns HTML banner if this job has a sameining partner
+  function sameiningBanner(job) {
+    // Only "new" and "all" beiðnir get banners (not already-claimed)
+    if (job.status !== 'new' && job.status) return '';
+    if (job.driver && job.driver !== 'all') return '';
+    const match = findPartnerFor(job.id);
+    if (!match) return '';
+    const p = match.partner;
+    const partnerDesc = `#${p.seq || '—'} · ${p.where || ''}`;
+    return `
+      <div class="sameining-banner">
+        <div class="sameining-banner-text">
+          💡 ${_lang === 'en' ? 'Combines with' : 'Passar við'} ${escapeHtml(partnerDesc)}
+          <small>${_lang === 'en' ? 'Saves' : 'Sparar'} ${match.savingsMin.toFixed(0)} ${_lang === 'en' ? 'min' : 'mín'} · ${match.savingsKm.toFixed(1)} km</small>
+        </div>
+        <button type="button" class="sameining-banner-btn" onclick="openSameiningModal('${job.id}', '${p.id}')">${_lang === 'en' ? 'View' : 'Skoða'}</button>
+      </div>`;
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  let _sameiningMap = null;
+  window.openSameiningModal = function(idA, idB) {
+    const d = getData();
+    const a = d.jobs.find(j => j.id === idA);
+    const b = d.jobs.find(j => j.id === idB);
+    if (!a || !b) return;
+    const pA = { lat: a.lat, lng: a.lng };
+    const pB = { lat: b.lat, lng: b.lng };
+    const bAB = drvMinutes([DRV_FURA_BASE, pA, pB, DRV_FURA_BASE]);
+    const bBA = drvMinutes([DRV_FURA_BASE, pB, pA, DRV_FURA_BASE]);
+    const bundle = bAB.minutes <= bBA.minutes ? { ...bAB, order: [a, b] } : { ...bBA, order: [b, a] };
+    const baseA = drvMinutes([DRV_FURA_BASE, pA, DRV_FURA_BASE]);
+    const baseB = drvMinutes([DRV_FURA_BASE, pB, DRV_FURA_BASE]);
+    const savingsMin = (baseA.minutes + baseB.minutes) - bundle.minutes;
+    const savingsKm = (baseA.km + baseB.km) - bundle.km;
+
+    const existing = document.getElementById('sameining-modal');
+    if (existing) existing.remove();
+    const modal = document.createElement('div');
+    modal.id = 'sameining-modal';
+    modal.className = 'sameining-modal';
+    modal.innerHTML = `
+      <div class="sameining-modal-box">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+          <h3 style="margin:0;font-size:1.1rem;">💡 ${_lang === 'en' ? 'Combine two requests' : 'Sameina tvær beiðnir'}</h3>
+          <button type="button" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--muted);" onclick="closeSameiningModal()">×</button>
+        </div>
+        <div style="background:#ecfdf5;border:1px solid #10b981;color:#065f46;font-weight:800;padding:0.5rem 0.75rem;border-radius:8px;font-size:0.85rem;margin-bottom:0.5rem;">
+          ${_lang === 'en' ? 'Saves' : 'Sparar'} ${savingsMin.toFixed(0)} ${_lang === 'en' ? 'min' : 'mín'} · ${savingsKm.toFixed(1)} km
+        </div>
+        ${bundle.order.map((j, i) => `
+          <div style="display:flex;gap:0.5rem;align-items:flex-start;padding:0.5rem 0;border-bottom:1px dashed var(--mid);">
+            <div style="background:var(--rust);color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.75rem;flex-shrink:0;">${i+1}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:700;">${escapeHtml(j.where || '—')}</div>
+              <div style="font-size:0.78rem;color:var(--muted);">${escapeHtml(localizedJobTypeLabel(j))} ${j.company ? '· '+escapeHtml(j.company) : ''}</div>
+            </div>
+          </div>
+        `).join('')}
+        <div class="sameining-modal-map" id="sameining-modal-map"></div>
+        <button class="btn btn-rust btn-full" style="margin-top:0.5rem;" onclick="claimBoth('${a.id}','${b.id}')">${_lang === 'en' ? '✓ Accept both' : '✓ Taka báðar'}</button>
+        <button class="btn btn-outline btn-full btn-sm" style="margin-top:0.5rem;" onclick="closeSameiningModal()">${_lang === 'en' ? 'Cancel' : 'Hætta við'}</button>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeSameiningModal(); });
+    // Init map
+    setTimeout(() => {
+      const el = document.getElementById('sameining-modal-map');
+      if (!el || !window.L) return;
+      _sameiningMap = L.map(el).setView([DRV_FURA_BASE.lat, DRV_FURA_BASE.lng], 11);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM', maxZoom: 18 }).addTo(_sameiningMap);
+      L.circleMarker([DRV_FURA_BASE.lat, DRV_FURA_BASE.lng], { radius: 6, color: '#1a1512', fillColor:'#fff', fillOpacity:1, weight:2 })
+        .bindPopup('Fura').addTo(_sameiningMap);
+      bundle.order.forEach((j, i) => {
+        L.marker([j.lat, j.lng]).bindPopup(`<b>${i+1}.</b> ${escapeHtml(j.where || '')}`).addTo(_sameiningMap);
+      });
+      const points = [DRV_FURA_BASE, ...bundle.order.map(j=>({lat:j.lat,lng:j.lng})), DRV_FURA_BASE];
+      const coords = points.map(p=>`${p.lng},${p.lat}`).join(';');
+      fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`)
+        .then(r => r.json()).then(d => {
+          if (d && d.routes && d.routes[0]) {
+            L.geoJSON(d.routes[0].geometry, { style: { color: '#c4621a', weight: 4 } }).addTo(_sameiningMap);
+            const latlngs = d.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+            _sameiningMap.fitBounds(L.latLngBounds(latlngs), { padding: [25, 25] });
+          } else {
+            const latlngs = points.map(p => [p.lat, p.lng]);
+            L.polyline(latlngs, { color: '#c4621a', weight: 3, dashArray: '6,8' }).addTo(_sameiningMap);
+            _sameiningMap.fitBounds(L.latLngBounds(latlngs), { padding: [25, 25] });
+          }
+        }).catch(()=>{
+          const latlngs = points.map(p => [p.lat, p.lng]);
+          L.polyline(latlngs, { color: '#c4621a', weight: 3, dashArray: '6,8' }).addTo(_sameiningMap);
+          _sameiningMap.fitBounds(L.latLngBounds(latlngs), { padding: [25, 25] });
+        });
+      setTimeout(() => _sameiningMap && _sameiningMap.invalidateSize(), 100);
+    }, 50);
+  };
+  window.closeSameiningModal = function() {
+    if (_sameiningMap) { _sameiningMap.remove(); _sameiningMap = null; }
+    const m = document.getElementById('sameining-modal');
+    if (m) m.remove();
+  };
+  window.claimBoth = async function(idA, idB) {
+    const d = getData();
+    const a = d.jobs.find(j => j.id === idA);
+    const b = d.jobs.find(j => j.id === idB);
+    if (!a || !b) return;
+    const slug = currentDriverName.toLowerCase().replace(/\s+/g,'_');
+    await fsSetJob({ ...a, driver: slug, driverLabel: currentDriverName, status: 'accepted' });
+    await fsSetJob({ ...b, driver: slug, driverLabel: currentDriverName, status: 'accepted' });
+    closeSameiningModal();
+    window.switchTab('vinnsla');
+    showToast(_lang === 'en' ? '✓ You took both' : '✓ Þú tókst við báðum');
+  };
 </script>
 
 <!-- Extra container picker modal -->
