@@ -5761,9 +5761,9 @@
     const savingsKm  = Number(idea.savingsKm || 0).toFixed(1);
     const safeId = idea.id.replace(/'/g, "\\'");
     const actions = approved
-      ? `<button class="btn btn-outline btn-sm" onclick="toggleIdeaMap('${safeId}')">🗺 Sýna/fela leið</button>
+      ? `<button class="btn btn-outline btn-sm" data-map-toggle="${safeId}" onclick="toggleIdeaMap('${safeId}')">🗺 Sýna leið</button>
          <button class="btn btn-outline btn-sm" onclick="undoApproveHugmynd('${safeId}')">↩ Afturkalla samþykkt</button>`
-      : `<button class="btn btn-outline btn-sm" onclick="toggleIdeaMap('${safeId}')">🗺 Sýna/fela leið</button>
+      : `<button class="btn btn-outline btn-sm" data-map-toggle="${safeId}" onclick="toggleIdeaMap('${safeId}')">🗺 Sýna leið</button>
          <button class="btn btn-rust btn-sm" onclick="approveHugmynd('${safeId}')">✓ Samþykkja</button>`;
     const statusBadge = approved
       ? `<span style="background:#dcfce7;color:#065f46;border:1px solid #10b981;padding:0.2rem 0.55rem;border-radius:10px;font-size:0.7rem;font-weight:800;letter-spacing:0.03em;margin-left:0.4rem;">SAMÞYKKT</span>`
@@ -5863,15 +5863,18 @@
   window.toggleIdeaMap = function(ideaId) {
     const el = document.getElementById('idea-map-' + ideaId);
     if (!el) return;
+    const btn = document.querySelector(`[data-map-toggle="${CSS.escape(ideaId)}"]`);
     if (_ideaMaps[ideaId]) {
       // Remove
       _ideaMaps[ideaId].remove();
       delete _ideaMaps[ideaId];
       el.style.display = 'none';
+      if (btn) btn.textContent = '🗺 Sýna leið';
       el.innerHTML = '';
       return;
     }
     el.style.display = 'block';
+    if (btn) btn.textContent = '🗺 Fela leið';
     // Look in both candidate ideas AND approved groups
     const idea = computeIdeas().find(x => x.id === ideaId) || getApprovedGroups().find(x => x.id === ideaId);
     if (!idea) return;
