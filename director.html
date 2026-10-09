@@ -259,6 +259,8 @@
     .idea-stop-main { flex: 1; min-width: 0; }
     .idea-stop-where { font-weight: 700; font-size: 0.9rem; }
     .idea-stop-what { font-size: 0.78rem; color: var(--muted); }
+    .idea-stop-remove { background: none; border: 1.5px solid var(--mid); color: var(--muted); width: 26px; height: 26px; border-radius: 50%; cursor: pointer; font-size: 1rem; font-weight: 700; line-height: 1; flex-shrink: 0; transition: all 0.15s; display: flex; align-items: center; justify-content: center; }
+    .idea-stop-remove:hover { border-color: var(--red); color: var(--red); background: #fef1ee; }
     .idea-map-wrap { width: 100%; height: 280px; border-radius: 10px; overflow: hidden; margin-top: 0.5rem; border: 1px solid var(--mid); }
     .idea-actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap; }
     .idea-empty { text-align: center; color: var(--muted); padding: 3rem 1rem; }
@@ -5609,7 +5611,72 @@
     return arr;
   }
 
-  // Find NEW pair suggestions — beiðnir sem eru enn opnar og EKKI komnar í sameiningGroup.
+  // Hvað tekur ein taka-kar beiðni mikið pláss á krana? Taka-kar = 1 kar, losa-kar = 0.
+  function kraniLoadOf(j) {
+    if (j.jobType === 'taka-kar' || j.jobType2 === 'taka-kar') return 1;
+    return 0;
+  }
+  // Beiðnir sem notandi hefur handvirkt fjarlægt úr ákveðinni hugmynd.
+  // Lykill: `${groupId}:${jobId}` — group er auto-berekninn hash. Þegar notandi × tekur
+  // út, skrifum við í Set og þær birtast ekki aftur í sömu samsetningu.
+  const _dismissedIdeaMembers = new Set();
+  window.dismissBeidniFromIdea = function(ideaId, jobId) {
+    _dismissedIdeaMembers.add(ideaId + ':' + jobId);
+    renderHugmyndir();
+  };
+
+  // Reikna cluster af krana-beiðnum (2-10 stopp, capacity ≤ 10 taka-kar).
+  // Nota greedy nearest-neighbor með marginal-cost prófi.
+  function computeKraniClusters(candidates) {
+    const krani = candidates.filter(j => vehicleClass(j) === 'krani');
+    const ideas = [];
+    const used = new Set();
+    for (const seed of krani) {
+      if (used.has(seed.id)) continue;
+      const cluster = [seed];
+      let capacity = kraniLoadOf(seed);
+      // Greedy extension
+      while (cluster.length < 10) {
+        const last = cluster[cluster.length - 1];
+        const choices = krani.filter(j => !cluster.includes(j) && !used.has(j.id) && (capacity + kraniLoadOf(j)) <= 10);
+        if (!choices.length) break;
+        choices.sort((a, b) => (kmBetween(last, a) || 0) - (kmBetween(last, b) || 0));
+        const next = choices[0];
+        // Marginal check: adding next must save time vs doing it alone
+        const beforePts = [FURA_BASE, ...cluster.map(j => ({ lat: j.lat, lng: j.lng })), FURA_BASE];
+        const afterPts  = [FURA_BASE, ...cluster.map(j => ({ lat: j.lat, lng: j.lng })), { lat: next.lat, lng: next.lng }, FURA_BASE];
+        const soloPts   = [FURA_BASE, { lat: next.lat, lng: next.lng }, FURA_BASE];
+        const marginalCost = minutesForRoute(afterPts).minutes - minutesForRoute(beforePts).minutes;
+        const soloMin = minutesForRoute(soloPts).minutes;
+        if (marginalCost >= soloMin - 5) break;
+        cluster.push(next);
+        capacity += kraniLoadOf(next);
+      }
+      if (cluster.length < 2) continue;
+      // Filter out dismissed members
+      const ideaIdDraft = 'krani_' + cluster.map(j => j.id).sort().join('_');
+      const finalCluster = cluster.filter(j => !_dismissedIdeaMembers.has(ideaIdDraft + ':' + j.id));
+      if (finalCluster.length < 2) continue;
+      const baseline = finalCluster.reduce((s, j) => s + minutesForRoute([FURA_BASE, { lat: j.lat, lng: j.lng }, FURA_BASE]).minutes, 0);
+      const baselineKm = finalCluster.reduce((s, j) => s + minutesForRoute([FURA_BASE, { lat: j.lat, lng: j.lng }, FURA_BASE]).km, 0);
+      const bundlePts = [FURA_BASE, ...finalCluster.map(j => ({ lat: j.lat, lng: j.lng })), FURA_BASE];
+      const bundle = minutesForRoute(bundlePts);
+      const savingsMin = baseline - bundle.minutes;
+      const savingsKm = baselineKm - bundle.km;
+      if (savingsMin < 10) continue;
+      finalCluster.forEach(j => used.add(j.id));
+      ideas.push({
+        id: 'krani_' + finalCluster.map(j => j.id).sort().join('_'),
+        jobs: finalCluster, order: finalCluster,
+        savingsMin, savingsKm,
+        kraniLoad: finalCluster.reduce((s, j) => s + kraniLoadOf(j), 0),
+        vClass: 'krani'
+      });
+    }
+    return ideas;
+  }
+
+  // Find NEW suggestions. Krani fær fjölstoppa clustera, gámabíll bara pör.
   function computeIdeas() {
     const d = getData();
     const candidates = (d.jobs || []).filter(j =>
@@ -5619,37 +5686,37 @@
       j.lat != null && j.lng != null &&
       vehicleClass(j) != null
     );
-    const ideas = [];
-    for (let i = 0; i < candidates.length; i++) {
-      for (let k = i + 1; k < candidates.length; k++) {
-        const a = candidates[i], b = candidates[k];
-        if (vehicleClass(a) !== vehicleClass(b)) continue;
+    const kraniIdeas = computeKraniClusters(candidates);
+    const ideas = [...kraniIdeas];
+    // Gámabíll handles only pairs (bíllinn ber bara 1 gám)
+    const gam = candidates.filter(j => vehicleClass(j) === 'gamabill');
+    for (let i = 0; i < gam.length; i++) {
+      for (let k = i + 1; k < gam.length; k++) {
+        const a = gam[i], b = gam[k];
         const posA = { lat: a.lat, lng: a.lng };
         const posB = { lat: b.lat, lng: b.lng };
-        // Baseline: two separate trips from base
         const baselineAB = minutesForRoute([FURA_BASE, posA, FURA_BASE]);
         const baselineBA = minutesForRoute([FURA_BASE, posB, FURA_BASE]);
         const baseline = { km: baselineAB.km + baselineBA.km, minutes: baselineAB.minutes + baselineBA.minutes };
-        // Bundled: pick shorter order
         const bundleAB = minutesForRoute([FURA_BASE, posA, posB, FURA_BASE]);
         const bundleBA = minutesForRoute([FURA_BASE, posB, posA, FURA_BASE]);
         const bundle = bundleAB.minutes <= bundleBA.minutes ? { ...bundleAB, order: [a, b] } : { ...bundleBA, order: [b, a] };
         const savingsKm = baseline.km - bundle.km;
         const savingsMin = baseline.minutes - bundle.minutes;
-        if (savingsMin < 10) continue; // not worth it
+        if (savingsMin < 10) continue;
+        const ideaId = `gam_${a.id}__${b.id}`;
+        // Honor director's manual × dismissals
+        const kept = bundle.order.filter(j => !_dismissedIdeaMembers.has(ideaId + ':' + j.id));
+        if (kept.length < 2) continue;
         ideas.push({
-          id: `${a.id}__${b.id}`,
-          jobs: [a, b],
-          order: bundle.order,
-          km: bundle.km,
-          minutes: bundle.minutes,
-          savingsKm,
-          savingsMin,
-          vClass: vehicleClass(a)
+          id: ideaId,
+          jobs: kept, order: kept,
+          km: bundle.km, minutes: bundle.minutes,
+          savingsKm, savingsMin,
+          vClass: 'gamabill'
         });
       }
     }
-    // Sort by biggest savings first
     ideas.sort((x, y) => y.savingsMin - x.savingsMin);
     return ideas;
   }
@@ -5670,15 +5737,26 @@
 
   function ideaCardHtml(idea, i, approved) {
     const vClassLabel = idea.vClass === 'krani' ? '🏗 Krani' : '🚛 Gámabíll';
-    const stops = idea.order.map((j, idx) => `
+    const safeIdeaId = idea.id.replace(/'/g, "\\'");
+    const stops = idea.order.map((j, idx) => {
+      const canRemove = !approved && idea.jobs.length > 2;
+      const removeBtn = canRemove
+        ? `<button type="button" class="idea-stop-remove" title="Fjarlægja úr þessari hugmynd" onclick="dismissBeidniFromIdea('${safeIdeaId}', '${j.id}')">×</button>`
+        : '';
+      return `
       <div class="idea-stop">
         <div class="idea-stop-num">${idx+1}</div>
         <div class="idea-stop-main">
           <div class="idea-stop-where">${escHtml(j.where || '—')}</div>
           <div class="idea-stop-what">${escHtml(j.jobTypeLabel || '')} ${j.company ? '· ' + escHtml(j.company) : ''} <span style="opacity:0.6;">(Beiðni #${j.seq || '—'})</span></div>
         </div>
+        ${removeBtn}
       </div>
-    `).join('');
+    `;
+    }).join('');
+    const capacityInfo = idea.vClass === 'krani'
+      ? `<span style="font-size:0.75rem;color:var(--muted);margin-left:0.5rem;">· ${idea.kraniLoad != null ? idea.kraniLoad : idea.jobs.filter(x => kraniLoadOf(x) === 1).length}/10 kör</span>`
+      : '';
     const savingsMin = Math.round(idea.savingsMin || 0);
     const savingsKm  = Number(idea.savingsKm || 0).toFixed(1);
     const safeId = idea.id.replace(/'/g, "\\'");
@@ -5695,7 +5773,7 @@
         <div class="idea-card-header">
           <div>
             <div class="idea-title">${approved ? '✓' : '💡'} Hugmynd #${i+1}${statusBadge}</div>
-            <div class="idea-subtitle">${vClassLabel} · ${idea.jobs.length} beiðnir</div>
+            <div class="idea-subtitle">${vClassLabel} · ${idea.jobs.length} beiðnir${capacityInfo}</div>
           </div>
           <div class="idea-savings">Sparar ${savingsMin} mín · ${savingsKm} km</div>
         </div>
