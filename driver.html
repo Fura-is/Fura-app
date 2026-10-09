@@ -2148,68 +2148,52 @@
     for (let i = 1; i < points.length; i++) km += drvKmBetween(points[i-1], points[i]);
     return { km, minutes: (km/40)*60 + (points.length-2)*8 };
   }
-  // For a given job id, find its best partner job (if any) + saving info
+  // Finna samþykktan partner fyrir þessa beiðni. Ef beiðnin er ekki í samþykktum
+  // hóp, skilum við null — bílstjóri sér engar sjálfvirkar tillögur beint.
   function findPartnerFor(jobId) {
     const d = getData();
     const target = (d.jobs || []).find(j => j.id === jobId);
-    if (!target || target.lat == null || drvVehicleClass(target) == null) return null;
-    const candidates = (d.jobs || []).filter(j =>
-      j.id !== jobId &&
-      (j.status === 'new' || !j.status) &&
-      (j.driver === 'all' || !j.driver) &&
-      j.lat != null && j.lng != null &&
-      drvVehicleClass(j) === drvVehicleClass(target)
-    );
-    let best = null;
-    for (const c of candidates) {
-      const pA = { lat: target.lat, lng: target.lng };
-      const pB = { lat: c.lat, lng: c.lng };
-      const baseA = drvMinutes([DRV_FURA_BASE, pA, DRV_FURA_BASE]);
-      const baseB = drvMinutes([DRV_FURA_BASE, pB, DRV_FURA_BASE]);
-      const bAB = drvMinutes([DRV_FURA_BASE, pA, pB, DRV_FURA_BASE]);
-      const bBA = drvMinutes([DRV_FURA_BASE, pB, pA, DRV_FURA_BASE]);
-      const bundle = bAB.minutes <= bBA.minutes ? { ...bAB, order: [target, c] } : { ...bBA, order: [c, target] };
-      const savingsMin = (baseA.minutes + baseB.minutes) - bundle.minutes;
-      const savingsKm = (baseA.km + baseB.km) - bundle.km;
-      if (savingsMin < 10) continue;
-      if (!best || savingsMin > best.savingsMin) best = { partner: c, savingsMin, savingsKm, order: bundle.order };
-    }
-    return best;
+    if (!target || !target.sameiningGroupId) return null;
+    const groupMembers = (d.jobs || []).filter(j => j.sameiningGroupId === target.sameiningGroupId && j.id !== jobId);
+    if (!groupMembers.length) return null;
+    // Flag check: driver matches group's chosen driver (or group is 'all')
+    const forMe = (target.sameiningGroupDriver === 'all' || !target.sameiningGroupDriver)
+               || nameMatch(target.sameiningGroupDriver, currentDriverName);
+    if (!forMe) return null;
+    // Pick first partner (v1 only pair groups — v2 may have 3+)
+    const partner = groupMembers[0];
+    return {
+      partner,
+      savingsMin: target.sameiningGroupSavingsMin || 0,
+      savingsKm: target.sameiningGroupSavingsKm || 0,
+      order: [target, partner]
+    };
   }
 
-  // Compute ALL valid pairs that this driver could take (both beiðnir must be 'Senda á alla')
+  // Return ONLY approved hugmyndir that this driver is eligible to see.
+  // Director must mark each pair with sameiningGroupId first — bílstjóri sér engar
+  // sjálfvirkar tillögur beint, bara það sem stjórnandi hefur samþykkt.
   function computeDriverPairs() {
     const d = getData();
-    const candidates = (d.jobs || []).filter(j =>
-      (j.status === 'new' || !j.status) &&
-      (j.driver === 'all' || !j.driver) &&
-      j.lat != null && j.lng != null &&
-      drvVehicleClass(j) != null
-    );
-    const pairs = [];
-    for (let i = 0; i < candidates.length; i++) {
-      for (let k = i + 1; k < candidates.length; k++) {
-        const a = candidates[i], b = candidates[k];
-        if (drvVehicleClass(a) !== drvVehicleClass(b)) continue;
-        const pA = { lat: a.lat, lng: a.lng };
-        const pB = { lat: b.lat, lng: b.lng };
-        const baseA = drvMinutes([DRV_FURA_BASE, pA, DRV_FURA_BASE]);
-        const baseB = drvMinutes([DRV_FURA_BASE, pB, DRV_FURA_BASE]);
-        const bAB = drvMinutes([DRV_FURA_BASE, pA, pB, DRV_FURA_BASE]);
-        const bBA = drvMinutes([DRV_FURA_BASE, pB, pA, DRV_FURA_BASE]);
-        const bundle = bAB.minutes <= bBA.minutes ? { ...bAB, order: [a, b] } : { ...bBA, order: [b, a] };
-        const savingsMin = (baseA.minutes + baseB.minutes) - bundle.minutes;
-        const savingsKm = (baseA.km + baseB.km) - bundle.km;
-        if (savingsMin < 10) continue;
-        pairs.push({
-          id: `${a.id}__${b.id}`,
-          jobs: [a, b], order: bundle.order,
-          savingsMin, savingsKm, vClass: drvVehicleClass(a)
-        });
-      }
+    const groups = {};
+    for (const j of (d.jobs || [])) {
+      if (!j.sameiningGroupId) continue;
+      if (j.status === 'archived' || j.status === 'done') continue;
+      const forMe = (j.sameiningGroupDriver === 'all' || !j.sameiningGroupDriver)
+                 || nameMatch(j.driverLabel, currentDriverName)
+                 || nameMatch(j.sameiningGroupDriver, currentDriverName);
+      if (!forMe) continue;
+      // Only unclaimed-yet or already-mine beiðnir
+      const openForMe = (j.status === 'new' && (!j.driver || j.driver === 'all'))
+                     || nameMatch(j.driverLabel, currentDriverName);
+      if (!openForMe) continue;
+      if (!groups[j.sameiningGroupId]) groups[j.sameiningGroupId] = { id: j.sameiningGroupId, orderIds: j.sameiningGroupOrder || [], jobs: [], savingsMin: j.sameiningGroupSavingsMin || 0, savingsKm: j.sameiningGroupSavingsKm || 0 };
+      groups[j.sameiningGroupId].jobs.push(j);
     }
-    pairs.sort((x, y) => y.savingsMin - x.savingsMin);
-    return pairs;
+    return Object.values(groups).filter(g => g.jobs.length >= 2).map(g => {
+      const order = g.orderIds.map(id => g.jobs.find(j => j.id === id)).filter(Boolean);
+      return { ...g, order: order.length >= 2 ? order : g.jobs, vClass: drvVehicleClass(g.jobs[0]) };
+    });
   }
 
   function renderDriverHugmyndir() {

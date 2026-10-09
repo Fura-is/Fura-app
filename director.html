@@ -5590,12 +5590,32 @@
     return { km, minutes: drive + stops * 8 };
   }
 
-  // Find pair suggestions. Returns array of { id, jobs: [j1, j2], order: [j1, j2], km, minutes, savingsKm, savingsMin, vClass }
+  // Fetch APPROVED hugmyndir — beiðnir sem director hefur merkt saman og eru lifandi.
+  // Grouped by sameiningGroupId. Returns array of { id, jobs, order, savingsMin, savingsKm, vClass, approved: true }
+  function getApprovedGroups() {
+    const d = getData();
+    const groups = {};
+    for (const j of (d.jobs || [])) {
+      if (!j.sameiningGroupId) continue;
+      // Skjótt sía: ef beiðnin er þegar klárud/í geymslu, slepptu
+      if (j.status === 'archived' || j.status === 'done') continue;
+      if (!groups[j.sameiningGroupId]) groups[j.sameiningGroupId] = { id: j.sameiningGroupId, orderIds: j.sameiningGroupOrder || [], jobs: [], savingsMin: j.sameiningGroupSavingsMin || 0, savingsKm: j.sameiningGroupSavingsKm || 0, driver: j.sameiningGroupDriver || 'all', approved: true };
+      groups[j.sameiningGroupId].jobs.push(j);
+    }
+    const arr = Object.values(groups).map(g => {
+      const order = g.orderIds.map(id => g.jobs.find(j => j.id === id)).filter(Boolean);
+      return { ...g, order, vClass: vehicleClass(order[0] || g.jobs[0]) };
+    }).filter(g => g.jobs.length >= 2);
+    return arr;
+  }
+
+  // Find NEW pair suggestions — beiðnir sem eru enn opnar og EKKI komnar í sameiningGroup.
   function computeIdeas() {
     const d = getData();
     const candidates = (d.jobs || []).filter(j =>
       (j.status === 'new' || !j.status) &&
       (j.driver === 'all' || !j.driver) &&
+      !j.sameiningGroupId &&
       j.lat != null && j.lng != null &&
       vehicleClass(j) != null
     );
@@ -5636,7 +5656,7 @@
 
   function updateHugmyndirBadge() {
     try {
-      const n = computeIdeas().length;
+      const n = computeIdeas().length + getApprovedGroups().length;
       const b = document.getElementById('hugmyndir-badge');
       if (!b) return;
       if (n > 0) { b.textContent = n; b.classList.remove('hidden'); }
@@ -5648,12 +5668,50 @@
 
   const _ideaMaps = {}; // keep Leaflet instances by idea id
 
+  function ideaCardHtml(idea, i, approved) {
+    const vClassLabel = idea.vClass === 'krani' ? '🏗 Krani' : '🚛 Gámabíll';
+    const stops = idea.order.map((j, idx) => `
+      <div class="idea-stop">
+        <div class="idea-stop-num">${idx+1}</div>
+        <div class="idea-stop-main">
+          <div class="idea-stop-where">${escHtml(j.where || '—')}</div>
+          <div class="idea-stop-what">${escHtml(j.jobTypeLabel || '')} ${j.company ? '· ' + escHtml(j.company) : ''} <span style="opacity:0.6;">(Beiðni #${j.seq || '—'})</span></div>
+        </div>
+      </div>
+    `).join('');
+    const savingsMin = Math.round(idea.savingsMin || 0);
+    const savingsKm  = Number(idea.savingsKm || 0).toFixed(1);
+    const safeId = idea.id.replace(/'/g, "\\'");
+    const actions = approved
+      ? `<button class="btn btn-outline btn-sm" onclick="toggleIdeaMap('${safeId}')">🗺 Sýna/fela leið</button>
+         <button class="btn btn-outline btn-sm" onclick="undoApproveHugmynd('${safeId}')">↩ Afturkalla samþykkt</button>`
+      : `<button class="btn btn-outline btn-sm" onclick="toggleIdeaMap('${safeId}')">🗺 Sýna/fela leið</button>
+         <button class="btn btn-rust btn-sm" onclick="approveHugmynd('${safeId}')">✓ Samþykkja</button>`;
+    const statusBadge = approved
+      ? `<span style="background:#dcfce7;color:#065f46;border:1px solid #10b981;padding:0.2rem 0.55rem;border-radius:10px;font-size:0.7rem;font-weight:800;letter-spacing:0.03em;margin-left:0.4rem;">SAMÞYKKT</span>`
+      : '';
+    return `
+      <div class="idea-card ${approved ? 'taken' : ''}" data-idea-id="${idea.id}">
+        <div class="idea-card-header">
+          <div>
+            <div class="idea-title">${approved ? '✓' : '💡'} Hugmynd #${i+1}${statusBadge}</div>
+            <div class="idea-subtitle">${vClassLabel} · ${idea.jobs.length} beiðnir</div>
+          </div>
+          <div class="idea-savings">Sparar ${savingsMin} mín · ${savingsKm} km</div>
+        </div>
+        <div class="idea-stops">${stops}</div>
+        <div class="idea-map-wrap" id="idea-map-${CSS.escape(idea.id)}"></div>
+        <div class="idea-actions">${actions}</div>
+      </div>`;
+  }
+
   function renderHugmyndir() {
     const wrap = document.getElementById('hugmyndir-list');
     if (!wrap) return;
+    const approved = getApprovedGroups();
     const ideas = computeIdeas();
     updateHugmyndirBadge();
-    if (!ideas.length) {
+    if (!approved.length && !ideas.length) {
       wrap.innerHTML = `
         <div class="idea-empty">
           <div class="idea-empty-icon">💡</div>
@@ -5662,35 +5720,67 @@
         </div>`;
       return;
     }
-    wrap.innerHTML = ideas.map((idea, i) => {
-      const vClassLabel = idea.vClass === 'krani' ? '🏗 Krani' : '🚛 Gámabíll';
-      const stops = idea.order.map((j, idx) => `
-        <div class="idea-stop">
-          <div class="idea-stop-num">${idx+1}</div>
-          <div class="idea-stop-main">
-            <div class="idea-stop-where">${escHtml(j.where || '—')}</div>
-            <div class="idea-stop-what">${escHtml(j.jobTypeLabel || '')} ${j.company ? '· ' + escHtml(j.company) : ''} <span style="opacity:0.6;">(Beiðni #${j.seq || '—'})</span></div>
-          </div>
-        </div>
-      `).join('');
-      return `
-        <div class="idea-card" data-idea-id="${idea.id}">
-          <div class="idea-card-header">
-            <div>
-              <div class="idea-title">Hugmynd #${i+1}</div>
-              <div class="idea-subtitle">${vClassLabel} · ${idea.jobs.length} beiðnir</div>
-            </div>
-            <div class="idea-savings">Sparar ${idea.savingsMin.toFixed(0)} mín · ${idea.savingsKm.toFixed(1)} km</div>
-          </div>
-          <div class="idea-stops">${stops}</div>
-          <div class="idea-map-wrap" id="idea-map-${CSS.escape(idea.id)}"></div>
-          <div class="idea-actions">
-            <button class="btn btn-outline btn-sm" onclick="toggleIdeaMap('${idea.id}')">🗺 Sýna/fela leið</button>
-          </div>
-        </div>
-      `;
-    }).join('');
+    const sections = [];
+    if (approved.length) {
+      sections.push(`
+        <h3 style="margin:0 0 0.6rem;font-size:1rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;">Samþykkt — sýnileg bílstjórum</h3>
+        ${approved.map((idea, i) => ideaCardHtml(idea, i, true)).join('')}`);
+    }
+    if (ideas.length) {
+      sections.push(`
+        <h3 style="margin:${approved.length ? '1.5rem' : '0'} 0 0.6rem;font-size:1rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;">Tillögur — bíða samþykktar</h3>
+        ${ideas.map((idea, i) => ideaCardHtml(idea, i, false)).join('')}`);
+    }
+    wrap.innerHTML = sections.join('');
   }
+
+  window.approveHugmynd = async function(ideaId) {
+    const idea = computeIdeas().find(x => x.id === ideaId);
+    if (!idea) { showToast('Fannst ekki — líklega önnur breyting komin'); return; }
+    const groupId = 'grp_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
+    const orderIds = idea.order.map(j => j.id);
+    const savingsMin = Math.round(idea.savingsMin);
+    const savingsKm  = parseFloat(idea.savingsKm.toFixed(1));
+    for (const j of idea.jobs) {
+      await fsSetJob({
+        ...j,
+        sameiningGroupId: groupId,
+        sameiningGroupOrder: orderIds,
+        sameiningGroupSavingsMin: savingsMin,
+        sameiningGroupSavingsKm: savingsKm,
+        sameiningGroupDriver: 'all',
+        sameiningApprovedAt: new Date().toISOString()
+      });
+    }
+    showToast('✓ Hugmynd samþykkt — sýnileg bílstjórum');
+    renderHugmyndir();
+  };
+
+  window.undoApproveHugmynd = async function(groupId) {
+    const groups = getApprovedGroups();
+    const g = groups.find(x => x.id === groupId);
+    if (!g) return;
+    if (!confirm('Afturkalla þessa samþykkt? Beiðnirnar fara aftur í candidate pool.')) return;
+    for (const j of g.jobs) {
+      const copy = { ...j };
+      delete copy.sameiningGroupId;
+      delete copy.sameiningGroupOrder;
+      delete copy.sameiningGroupSavingsMin;
+      delete copy.sameiningGroupSavingsKm;
+      delete copy.sameiningGroupDriver;
+      delete copy.sameiningApprovedAt;
+      // Set keys to null (Firestore delete via setDoc merge wouldn't apply here — we overwrite whole doc)
+      copy.sameiningGroupId = null;
+      copy.sameiningGroupOrder = null;
+      copy.sameiningGroupSavingsMin = null;
+      copy.sameiningGroupSavingsKm = null;
+      copy.sameiningGroupDriver = null;
+      copy.sameiningApprovedAt = null;
+      await fsSetJob(copy);
+    }
+    showToast('Samþykkt afturkölluð');
+    renderHugmyndir();
+  };
 
   window.toggleIdeaMap = function(ideaId) {
     const el = document.getElementById('idea-map-' + ideaId);
@@ -5704,7 +5794,8 @@
       return;
     }
     el.style.display = 'block';
-    const idea = computeIdeas().find(x => x.id === ideaId);
+    // Look in both candidate ideas AND approved groups
+    const idea = computeIdeas().find(x => x.id === ideaId) || getApprovedGroups().find(x => x.id === ideaId);
     if (!idea) return;
     const points = [FURA_BASE, ...idea.order.map(j => ({ lat: j.lat, lng: j.lng, label: j.where })), FURA_BASE];
     const map = L.map(el).setView([FURA_BASE.lat, FURA_BASE.lng], 11);
