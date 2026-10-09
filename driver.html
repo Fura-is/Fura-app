@@ -434,6 +434,9 @@
       </button>
       <button class="nav-tab" id="tab-vinnsla" onclick="switchTab('vinnsla')" data-lang-text="tab_vinnsla">Í vinnslu</button>
       <button class="nav-tab" id="tab-klarud" onclick="switchTab('klarud')" data-lang-text="tab_klarud">Kláraðar beiðnir</button>
+      <button class="nav-tab" id="tab-hugmyndir" onclick="switchTab('hugmyndir')" aria-label="Hugmyndir">
+        💡<span class="nav-badge hidden" id="hugmyndir-badge" style="background:#f59e0b;">0</span>
+      </button>
     </div>
 
     <!-- Tab panels -->
@@ -445,6 +448,9 @@
     </div>
     <div class="tab-panel" id="panel-klarud">
       <div class="card-grid" id="klarud-list"></div>
+    </div>
+    <div class="tab-panel" id="panel-hugmyndir">
+      <div class="card-grid" id="hugmyndir-list"></div>
     </div>
   </div>
 </div>
@@ -1183,6 +1189,7 @@
 
     // Badge stays until every new job has been acted on
     updateBadge(newJobs.length);
+    try { renderDriverHugmyndir(); } catch(e) { console.warn('hugmyndir', e); }
   }
 
   function renderList(containerId, jobs, title, icon, emptyMsg) {
@@ -2168,6 +2175,79 @@
       if (!best || savingsMin > best.savingsMin) best = { partner: c, savingsMin, savingsKm, order: bundle.order };
     }
     return best;
+  }
+
+  // Compute ALL valid pairs that this driver could take (both beiðnir must be 'Senda á alla')
+  function computeDriverPairs() {
+    const d = getData();
+    const candidates = (d.jobs || []).filter(j =>
+      (j.status === 'new' || !j.status) &&
+      (j.driver === 'all' || !j.driver) &&
+      j.lat != null && j.lng != null &&
+      drvVehicleClass(j) != null
+    );
+    const pairs = [];
+    for (let i = 0; i < candidates.length; i++) {
+      for (let k = i + 1; k < candidates.length; k++) {
+        const a = candidates[i], b = candidates[k];
+        if (drvVehicleClass(a) !== drvVehicleClass(b)) continue;
+        const pA = { lat: a.lat, lng: a.lng };
+        const pB = { lat: b.lat, lng: b.lng };
+        const baseA = drvMinutes([DRV_FURA_BASE, pA, DRV_FURA_BASE]);
+        const baseB = drvMinutes([DRV_FURA_BASE, pB, DRV_FURA_BASE]);
+        const bAB = drvMinutes([DRV_FURA_BASE, pA, pB, DRV_FURA_BASE]);
+        const bBA = drvMinutes([DRV_FURA_BASE, pB, pA, DRV_FURA_BASE]);
+        const bundle = bAB.minutes <= bBA.minutes ? { ...bAB, order: [a, b] } : { ...bBA, order: [b, a] };
+        const savingsMin = (baseA.minutes + baseB.minutes) - bundle.minutes;
+        const savingsKm = (baseA.km + baseB.km) - bundle.km;
+        if (savingsMin < 10) continue;
+        pairs.push({
+          id: `${a.id}__${b.id}`,
+          jobs: [a, b], order: bundle.order,
+          savingsMin, savingsKm, vClass: drvVehicleClass(a)
+        });
+      }
+    }
+    pairs.sort((x, y) => y.savingsMin - x.savingsMin);
+    return pairs;
+  }
+
+  function renderDriverHugmyndir() {
+    const pairs = computeDriverPairs();
+    const badge = document.getElementById('hugmyndir-badge');
+    if (badge) {
+      if (pairs.length > 0) { badge.textContent = pairs.length > 9 ? '9+' : pairs.length; badge.classList.remove('hidden'); }
+      else badge.classList.add('hidden');
+    }
+    const list = document.getElementById('hugmyndir-list');
+    if (!list) return;
+    if (!pairs.length) {
+      list.innerHTML = `<div class="empty-state"><div class="icon">💡</div>${_lang === 'en' ? 'No ideas right now' : 'Engar hugmyndir í bili'}<br/><small style="font-size:0.8rem;margin-top:0.5rem;display:block;">${_lang === 'en' ? 'Ideas appear when two open requests pair up' : 'Hugmyndir birtast þegar tvær opnar beiðnir passa saman'}</small></div>`;
+      return;
+    }
+    list.innerHTML = pairs.map((p, i) => {
+      const vLabel = p.vClass === 'krani' ? '🏗 Krani' : '🚛 Gámabíll';
+      const stops = p.order.map((j, idx) => `
+        <div style="display:flex;gap:0.5rem;align-items:flex-start;padding:0.4rem 0;border-bottom:1px dashed var(--mid);">
+          <div style="background:var(--rust);color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.75rem;flex-shrink:0;">${idx+1}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:0.9rem;">${escapeHtml(j.where || '—')}</div>
+            <div style="font-size:0.78rem;color:var(--muted);">${escapeHtml(localizedJobTypeLabel(j))} ${j.company ? '· ' + escapeHtml(j.company) : ''} <span style="opacity:0.6;">(#${j.seq || '—'})</span></div>
+          </div>
+        </div>`).join('');
+      return `
+        <div class="job-card" style="border-left:4px solid #f59e0b;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;margin-bottom:0.6rem;">
+            <div>
+              <div style="font-weight:800;font-size:1.05rem;">💡 ${_lang === 'en' ? 'Idea' : 'Hugmynd'} #${i+1}</div>
+              <div style="font-size:0.8rem;color:var(--muted);margin-top:0.1rem;">${vLabel}</div>
+            </div>
+            <div style="background:#ecfdf5;border:1px solid #10b981;color:#065f46;font-weight:800;padding:0.4rem 0.65rem;border-radius:8px;font-size:0.78rem;white-space:nowrap;">${_lang === 'en' ? 'Saves' : 'Sparar'} ${p.savingsMin.toFixed(0)} ${_lang === 'en' ? 'min' : 'mín'}</div>
+          </div>
+          <div style="margin:0.3rem 0 0.6rem;">${stops}</div>
+          <button class="btn btn-rust btn-full" onclick="openSameiningModal('${p.order[0].id}','${p.order[1].id}')">${_lang === 'en' ? '🗺 View & accept' : '🗺 Skoða og taka báðar'}</button>
+        </div>`;
+    }).join('');
   }
 
   // Called from jobCard — returns HTML banner if this job has a sameining partner
