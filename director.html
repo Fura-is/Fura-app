@@ -773,7 +773,10 @@
           <h2 style="margin:0;font-size:1.4rem;">💡 Hugmyndavél</h2>
           <div style="font-size:0.85rem;color:var(--muted);margin-top:0.2rem;">Sjálfvirkar tillögur: tvö beiðnir á sama bílaflokki sem spara ferð</div>
         </div>
-        <button class="btn btn-outline btn-sm" onclick="recomputeIdeas()">🔄 Endurreikna</button>
+        <div style="display:flex;gap:0.4rem;">
+          <button class="btn btn-outline btn-sm" onclick="openCreateTripModal()">＋ Búa til ferðalag</button>
+          <button class="btn btn-outline btn-sm" onclick="recomputeIdeas()">🔄 Endurreikna</button>
+        </div>
       </div>
       <div id="hugmyndir-list"></div>
     </div>
@@ -5958,6 +5961,119 @@
       });
     }
     showToast('✓ Hugmynd samþykkt — sýnileg bílstjórum');
+    renderHugmyndir();
+  };
+
+  // Manual "Búa til ferðalag" — stjórnandi býr til hugmynd handvirkt úr völdum
+  // beiðnum þegar algrímið sá ekki tækifærið (t.d. beiðnir án hnita, eða þegar
+  // sparnaðarmörk reiknings skiluðu ekki).
+  let _createTripSelected = new Set();
+  let _createTripVClass = 'krani';
+  window.openCreateTripModal = function() {
+    _createTripSelected = new Set();
+    _createTripVClass = 'krani';
+    renderCreateTripModal();
+  };
+  function renderCreateTripModal() {
+    const existing = document.getElementById('create-trip-modal');
+    if (existing) existing.remove();
+    const eligible = (appData.jobs || []).filter(j =>
+      (j.status === 'new' || !j.status) &&
+      (j.driver === 'all' || !j.driver) &&
+      !j.sameiningGroupId &&
+      vehicleClass(j) === _createTripVClass
+    );
+    const hasCoords = eligible.filter(j => j.lat != null && j.lng != null);
+    const missingCoords = eligible.filter(j => j.lat == null || j.lng == null);
+    const n = _createTripSelected.size;
+    const canCreate = n >= 2 && (_createTripVClass === 'krani' ? n <= 4 : n === 2);
+    const limitLabel = _createTripVClass === 'krani' ? '2-4 beiðnir' : 'nákvæmlega 2 beiðnir';
+    const modal = document.createElement('div');
+    modal.id = 'create-trip-modal';
+    modal.className = 'geo-results-modal';
+    const row = (j) => {
+      const picked = _createTripSelected.has(j.id);
+      const noCoords = j.lat == null || j.lng == null;
+      return `
+        <div class="geo-result-item" style="display:flex;align-items:flex-start;gap:0.5rem;${picked ? 'border-color:var(--rust);background:#fef1ee;' : ''}${noCoords ? 'opacity:0.5;' : 'cursor:pointer;'}" ${noCoords ? '' : `onclick="toggleCreateTripBeidni('${j.id.replace(/'/g, "\\'")}')"`}>
+          <div style="width:20px;height:20px;border:2px solid ${picked ? 'var(--rust)' : 'var(--mid)'};border-radius:4px;flex-shrink:0;margin-top:0.1rem;display:flex;align-items:center;justify-content:center;color:#fff;background:${picked ? 'var(--rust)' : '#fff'};">${picked ? '✓' : ''}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;">${escHtml(j.where || '—')}</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-top:0.2rem;">${escHtml(j.jobTypeLabel || '')} ${j.company ? '· ' + escHtml(j.company) : ''} <span style="opacity:0.6;">(Beiðni #${j.seq || '—'})</span>${noCoords ? ' · <span style="color:var(--red);">⚠ vantar hnit</span>' : ''}</div>
+          </div>
+        </div>`;
+    };
+    const vclassBtn = (val, label) => `<button type="button" class="btn btn-sm ${_createTripVClass === val ? 'btn-rust' : 'btn-outline'}" onclick="setCreateTripVClass('${val}')" style="flex:1;">${label}</button>`;
+    modal.innerHTML = `
+      <div class="geo-results-box" style="max-width:520px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+          <h3 style="margin:0;font-size:1.05rem;">＋ Búa til ferðalag handvirkt</h3>
+          <button type="button" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--muted);" onclick="closeCreateTripModal()">×</button>
+        </div>
+        <div style="font-size:0.82rem;color:var(--muted);margin-bottom:0.75rem;">Veldu ${limitLabel} til að tengja saman. Beiðnirnar verða strax samþykktar og bílstjórar sjá þær í sínu 💡 tab.</div>
+        <div style="display:flex;gap:0.4rem;margin-bottom:0.75rem;">
+          ${vclassBtn('krani', '🏗 Krani')}
+          ${vclassBtn('gamabill', '🚛 Gámabíll')}
+        </div>
+        ${hasCoords.length === 0 ? `<div style="padding:1rem;color:var(--muted);text-align:center;">Engar opnar ${_createTripVClass === 'krani' ? 'krana' : 'gámabíls'}-beiðnir með hnit í boði.</div>` : hasCoords.map(row).join('')}
+        ${missingCoords.length > 0 ? `<div style="margin-top:0.75rem;font-size:0.75rem;color:var(--muted);"><strong>${missingCoords.length} beiðnir án hnita</strong> (ekki hægt að tengja því engin leið getur reiknast):</div>${missingCoords.map(row).join('')}` : ''}
+        <div style="display:flex;gap:0.5rem;margin-top:1rem;justify-content:flex-end;">
+          <button class="btn btn-outline" onclick="closeCreateTripModal()">Hætta við</button>
+          <button class="btn btn-rust" ${canCreate ? '' : 'disabled style="opacity:0.5;cursor:not-allowed;"'} onclick="submitCreateTrip()">Búa til (${n})</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeCreateTripModal(); });
+  }
+  window.closeCreateTripModal = function() {
+    const m = document.getElementById('create-trip-modal');
+    if (m) m.remove();
+  };
+  window.setCreateTripVClass = function(v) {
+    if (_createTripVClass === v) return;
+    _createTripVClass = v;
+    _createTripSelected = new Set(); // reset selection when class changes
+    renderCreateTripModal();
+  };
+  window.toggleCreateTripBeidni = function(jobId) {
+    if (_createTripSelected.has(jobId)) _createTripSelected.delete(jobId);
+    else {
+      const limit = _createTripVClass === 'krani' ? 4 : 2;
+      if (_createTripSelected.size >= limit) {
+        showToast(`Hámark ${limit} beiðnir fyrir ${_createTripVClass === 'krani' ? 'krana' : 'gámabíl'}`);
+        return;
+      }
+      _createTripSelected.add(jobId);
+    }
+    renderCreateTripModal();
+  };
+  window.submitCreateTrip = async function() {
+    const ids = [..._createTripSelected];
+    if (ids.length < 2) return;
+    const jobs = ids.map(id => appData.jobs.find(j => j.id === id)).filter(Boolean);
+    if (jobs.length !== ids.length) { showToast('Ein af beiðnunum fannst ekki'); return; }
+    // Compute route and savings
+    const points = [FURA_BASE, ...jobs.map(j => ({ lat: j.lat, lng: j.lng })), FURA_BASE];
+    const bundle = minutesForRoute(points);
+    const baseline = jobs.reduce((s, j) => s + minutesForRoute([FURA_BASE, { lat: j.lat, lng: j.lng }, FURA_BASE]).minutes, 0);
+    const baselineKm = jobs.reduce((s, j) => s + minutesForRoute([FURA_BASE, { lat: j.lat, lng: j.lng }, FURA_BASE]).km, 0);
+    const savingsMin = Math.max(0, Math.round(baseline - bundle.minutes));
+    const savingsKm  = parseFloat(Math.max(0, baselineKm - bundle.km).toFixed(1));
+    const groupId = 'grp_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
+    const orderIds = jobs.map(j => j.id);
+    for (const j of jobs) {
+      await fsSetJob({
+        ...j,
+        sameiningGroupId: groupId,
+        sameiningGroupOrder: orderIds,
+        sameiningGroupSavingsMin: savingsMin,
+        sameiningGroupSavingsKm: savingsKm,
+        sameiningGroupDriver: 'all',
+        sameiningApprovedAt: new Date().toISOString()
+      });
+    }
+    closeCreateTripModal();
+    showToast(`✓ Ferðalag búið til (${jobs.length} beiðnir) — sýnilegt bílstjórum`);
     renderHugmyndir();
   };
 
