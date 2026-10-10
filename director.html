@@ -5680,6 +5680,55 @@
     renderHugmyndir();
   };
 
+  // Smart ferðapörun — taka-kar hjá fyrirtæki A + vantar-kar hjá fyrirtæki B.
+  // Bíllinn tekur körina hjá A, afhendir hana beint hjá B án þess að fara
+  // til Fura á milli. Þetta sparar heila ferð vs. venjulegu 2 ferðir.
+  function computeSmartTakaVantarPairs(candidates) {
+    const takaJobs = candidates.filter(j =>
+      vehicleClass(j) === 'krani' && (j.jobType === 'taka-kar' || j.jobType2 === 'taka-kar')
+    );
+    const vantarJobs = candidates.filter(j =>
+      vehicleClass(j) === 'krani' && (j.jobType === 'vantar-kar' || j.jobType2 === 'vantar-kar')
+    );
+    const ideas = [];
+    const used = new Set();
+    // Fyrir hvert taka, finna besta vantar partner (styst saman)
+    for (const t of takaJobs) {
+      if (used.has(t.id)) continue;
+      let best = null;
+      for (const v of vantarJobs) {
+        if (v.id === t.id || used.has(v.id)) continue;
+        const posT = { lat: t.lat, lng: t.lng };
+        const posV = { lat: v.lat, lng: v.lng };
+        // Baseline: 2 separate round-trips
+        const baseA = minutesForRoute([FURA_BASE, posT, FURA_BASE]);
+        const baseB = minutesForRoute([FURA_BASE, posV, FURA_BASE]);
+        // Smart: Fura → taka → vantar → Fura (ein ferð, kar fer beint)
+        const smart = minutesForRoute([FURA_BASE, posT, posV, FURA_BASE]);
+        const savingsMin = (baseA.minutes + baseB.minutes) - smart.minutes;
+        const savingsKm  = (baseA.km + baseB.km) - smart.km;
+        if (savingsMin < 10) continue;
+        if (!best || savingsMin > best.savingsMin) {
+          best = { v, savingsMin, savingsKm, bundleKm: smart.km, bundleMin: smart.minutes };
+        }
+      }
+      if (!best) continue;
+      used.add(t.id); used.add(best.v.id);
+      ideas.push({
+        id: 'smart_' + [t.id, best.v.id].sort().join('_'),
+        jobs: [t, best.v],
+        order: [t, best.v],  // taka first, then vantar
+        savingsMin: best.savingsMin,
+        savingsKm: best.savingsKm,
+        km: best.bundleKm,
+        minutes: best.bundleMin,
+        vClass: 'krani',
+        smart: true
+      });
+    }
+    return { ideas, usedIds: used };
+  }
+
   // Reikna cluster af krana-beiðnum (2-10 stopp, capacity ≤ 10 taka-kar).
   // Nota greedy nearest-neighbor með marginal-cost prófi.
   function computeKraniClusters(candidates) {
@@ -5755,8 +5804,12 @@
       j.lat != null && j.lng != null &&
       vehicleClass(j) != null
     );
-    const kraniIdeas = computeKraniClusters(candidates);
-    const ideas = [...kraniIdeas];
+    // Smart taka→vantar pörun fyrst (hefur forgang því hún sparar oft meira);
+    // beiðnir sem lenda í smart hugmynd eru teknar úr pool-inu fyrir cluster leit.
+    const smart = computeSmartTakaVantarPairs(candidates);
+    const remainingKrani = candidates.filter(j => !smart.usedIds.has(j.id));
+    const kraniIdeas = computeKraniClusters(remainingKrani);
+    const ideas = [...smart.ideas, ...kraniIdeas];
     // Gámabíll handles only pairs (bíllinn ber bara 1 gám)
     const gam = candidates.filter(j => vehicleClass(j) === 'gamabill');
     for (let i = 0; i < gam.length; i++) {
@@ -5847,7 +5900,7 @@
         <div class="idea-card-header">
           <div>
             <div class="idea-title">${approved ? '✓' : '💡'} Hugmynd #${i+1}${statusBadge}</div>
-            <div class="idea-subtitle">${vClassLabel} · ${idea.jobs.length} beiðnir${capacityInfo}</div>
+            <div class="idea-subtitle">${vClassLabel}${idea.smart ? ' · <span style="background:#ddd6fe;color:#5b21b6;padding:0.1rem 0.4rem;border-radius:4px;font-size:0.72rem;font-weight:800;">🔀 SMART FERÐ</span>' : ''} · ${idea.jobs.length} beiðnir${capacityInfo}</div>
           </div>
           <div class="idea-savings">Sparar ${savingsMin} mín · ${savingsKm} km</div>
         </div>
