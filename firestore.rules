@@ -1,11 +1,63 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Opinn aðgangur — sama hegðun og áður (engin útrunnsdagsetning).
-    // ATH: Þetta er bráðabirgðaráðstöfun til að koma forritinu aftur í gang.
-    // Næsta skref ætti að vera Firebase Auth + reglur sem krefjast innskráningar.
-    match /{document=**} {
-      allow read, write: if true;
+    // Director UID — the only authenticated user that may create/delete sensitive
+    // resources or write to inventory. Driver anonymous auth sessions can read
+    // and update specific collections but not change the structural data.
+    function isDirector() {
+      return request.auth != null && request.auth.uid == 'SqZCobL0GnOVZqnaJ5rrtzCZPbj2';
     }
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Beiðnir — director skrifar/eyðir, hver sem er innskráður les og má
+    // uppfæra status/númer. (Bílstjóri uppfærir status þegar hann tekur við /
+    // klárar; director breytir öllu.)
+    match /jobs/{id} {
+      allow read:          if isSignedIn();
+      allow create, delete: if isDirector();
+      allow update:        if isSignedIn();
+    }
+
+    // Gámar og kör — directors inventory. Allir lesa, aðeins director skrifar.
+    match /containers/{id} {
+      allow read:  if isSignedIn();
+      allow write: if isDirector();
+    }
+    match /kars/{id} {
+      allow read:  if isSignedIn();
+      allow write: if isDirector();
+    }
+
+    // Driver registration & approved list — anyone signed-in getur lesið (fyrir
+    // login check á driver side) og búið til skráningarbeiðni. Director eyðir
+    // og samþykkir.
+    match /driverRequests/{id} {
+      allow read, create: if isSignedIn();
+      allow update, delete: if isDirector();
+    }
+    match /approvedDrivers/{id} {
+      allow read:  if isSignedIn();
+      allow write: if isDirector();
+    }
+
+    // Audit log — director only
+    match /auditLog/{id} {
+      allow read:   if isDirector();
+      allow create: if isDirector();
+      allow update, delete: if isDirector();
+    }
+
+    // Dismissed suggestions and meta — director only
+    match /dismissedSuggestions/{id} {
+      allow read, write: if isDirector();
+    }
+    match /meta/{id} {
+      allow read:  if isSignedIn();
+      allow write: if isDirector();
+    }
+
+    // Default-deny — allt annað blokkast nema matching rule hleypi því í gegn
   }
 }

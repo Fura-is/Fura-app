@@ -1128,6 +1128,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
   import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, runTransaction, query, where, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAdDfbGWGnBHqCxfBQvay36JDXLTPA12SY",
@@ -1140,6 +1141,26 @@
 
   const fireApp = initializeApp(firebaseConfig);
   const db = getFirestore(fireApp);
+  const auth = getAuth(fireApp);
+  // Persist session across reloads/tab-closes — same UX as áður
+  setPersistence(auth, browserLocalPersistence).catch(e => console.warn('persistence', e));
+
+  // Director UID — only this user hefur full read/write í hertum Firestore reglum
+  const DIRECTOR_UID = 'SqZCobL0GnOVZqnaJ5rrtzCZPbj2';
+  const DIRECTOR_EMAIL = 'stjornandi@fura.app';
+
+  // Hertar Firestore reglur krefjast innskráningar. onSnapshot má ekki fara af
+  // stað fyrr en auth session er komin (restored úr persistence eða ný login).
+  // Resolve þegar við vitum að notandi er either auth'd eða definitely not.
+  let _authReadyResolve;
+  const authReady = new Promise(res => { _authReadyResolve = res; });
+  let _authResolved = false;
+  onAuthStateChanged(auth, (user) => {
+    if (!_authResolved && user) { _authResolved = true; _authReadyResolve(); }
+  });
+  // Safety: ef ekki innskráður eftir 2 sek, resolve-um samt — gefur listener
+  // chance til að hitta permission-denied og director skráir sig þá inn
+  setTimeout(() => { if (!_authResolved) { _authResolved = true; _authReadyResolve(); } }, 2000);
 
   // ── LOCAL CACHE (kept in sync by onSnapshot) ───────────────────────────────
   let appData = { jobs: [], driverRequests: [], approvedDrivers: [], containers: [], kars: [] };
@@ -1319,6 +1340,10 @@
   }
 
   // ── REAL-TIME LISTENERS ────────────────────────────────────────────────────
+  // Bíðum eftir auth session áður en við tengjumst Firestore (hertar reglur
+  // hleypa aðeins innskráðum notendum í gegn).
+  authReady.then(() => setupListeners());
+  function setupListeners() {
   onSnapshot(collection(db,'jobs'), snap => {
     appData.jobs = snap.docs.map(d => ({id:d.id,...d.data()}));
     if (!_loggedIn) return;
@@ -1388,8 +1413,12 @@
     updateKorCount();
     updateReconcileBanner();
   });
+  } // end setupListeners
 
-  const DIRECTOR_PASSWORD = 'fura2024';
+  // ÚRELTAÐ (bara haldið sem komment svo gamli flow sé auðraknanlegur):
+  // Áður: hardcoded lykilorð í kóðanum. Núna: Firebase Auth, lykilorðið er
+  // geymt dulkóðað hjá Firebase sjálfum. Director email er hidden implementation.
+  // const DIRECTOR_PASSWORD = 'fura2024';
   let _jobImageData = null;
 
   function handleImageUpload(input) {
@@ -1438,30 +1467,42 @@
     safe('updateReconcileBanner', updateReconcileBanner);
     safe('pruneOldAuditEntries', pruneOldAuditEntries);
   }
-  const SESSION_MAX_MS = 7 * 24 * 60 * 60 * 1000; // 1 week
-  window.doLogin = function() {
+  // Firebase Auth-based login. Password er geymt hjá Firebase (hashad), engin
+  // hardcoded samanburður í kóðanum lengur.
+  window.doLogin = async function() {
     const pw = document.getElementById('login-password').value;
-    if (pw !== DIRECTOR_PASSWORD) { document.getElementById('login-error').style.display = 'block'; return; }
-    localStorage.setItem('fura_director_session', String(Date.now()));
-    completeLogin();
-  };
-  // Auto-login if previously logged in within the last week
-  (function tryAutoLogin() {
-    const raw = localStorage.getItem('fura_director_session');
-    if (!raw) return;
-    // Backwards-compat: old sessions stored 'yes' instead of a timestamp — treat as expired
-    const ts = Number(raw);
-    if (!ts || isNaN(ts) || Date.now() - ts > SESSION_MAX_MS) {
-      localStorage.removeItem('fura_director_session');
-      return;
+    const errEl = document.getElementById('login-error');
+    errEl.style.display = 'none';
+    try {
+      await signInWithEmailAndPassword(auth, DIRECTOR_EMAIL, pw);
+      // onAuthStateChanged tekur yfir hér — kallar completeLogin() þegar auth er klárað
+    } catch (e) {
+      console.warn('login failed', e.code);
+      errEl.textContent = (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential')
+        ? 'Rangt lykilorð'
+        : (e.code === 'auth/too-many-requests' ? 'Of margar misheppnaðar tilraunir — bíddu í 5 mín' : 'Villa við innskráningu: ' + e.code);
+      errEl.style.display = 'block';
     }
-    completeLogin();
-  })();
-  window.doLogout = function() {
+  };
+
+  // onAuthStateChanged keyrir þegar Firebase hefur ákveðið hvort notandi sé innskráður
+  // (einnig við page load eftir persisted session). Þetta kemur í stað gamla tryAutoLogin.
+  onAuthStateChanged(auth, (user) => {
+    if (user && user.uid === DIRECTOR_UID) {
+      if (!_loggedIn) completeLogin();
+    } else {
+      // Ekki innskráður director — sýnum login screen
+      _loggedIn = false;
+      document.getElementById('login-screen').style.display = 'flex';
+      const appEl = document.getElementById('app');
+      if (appEl) appEl.style.display = 'none';
+    }
+  });
+
+  window.doLogout = async function() {
     _loggedIn = false;
-    localStorage.removeItem('fura_director_session');
-    document.getElementById('login-screen').style.display = 'flex';
-    document.getElementById('app').style.display = 'none';
+    try { await signOut(auth); } catch(e) { console.warn('signOut', e); }
+    // onAuthStateChanged tekur yfir og sýnir login screen aftur
     document.getElementById('login-password').value = '';
   };
   document.getElementById('login-password').addEventListener('keydown', e => { if (e.key==='Enter') window.doLogin(); });
@@ -2974,13 +3015,16 @@
     bodyEl.innerHTML = `<div style="padding:1rem;color:var(--muted);text-align:center;">Hleð…</div>`;
     document.getElementById('audit-log-modal').style.display = 'flex';
     try {
-      // 1-year cutoff (client-side filter — Firestore TTL requires setup)
+      // 1-year cutoff + targetType filter client-side til að þurfa EKKI composite
+      // index í Firestore. targetId er single-field equality (auto-indexed), orderBy
+      // gerist eftir fetch.
       const cutoffMs = Date.now() - 365 * 24 * 60 * 60 * 1000;
-      const q = query(collection(db,'auditLog'), where('targetType','==',targetType), where('targetId','==',targetId), orderBy('ts','desc'));
+      const q = query(collection(db,'auditLog'), where('targetId','==',targetId));
       const snap = await getDocs(q);
       const entries = snap.docs
         .map(d => d.data())
-        .filter(e => new Date(e.ts).getTime() >= cutoffMs);
+        .filter(e => e.targetType === targetType && new Date(e.ts).getTime() >= cutoffMs)
+        .sort((a, b) => (b.ts || '').localeCompare(a.ts || ''));
       if (entries.length === 0) {
         bodyEl.innerHTML = `<div style="padding:1rem;color:var(--muted);text-align:center;">Engar færslur enn</div>`;
         return;
