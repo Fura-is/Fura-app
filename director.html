@@ -5668,6 +5668,17 @@
     _dismissedIdeaMembers.add(ideaId + ':' + jobId);
     renderHugmyndir();
   };
+  // Manual additions: director hefur bætt handvirkt við beiðni í hugmynd sem
+  // algrímið myndi annars sleppa. Lykill = seed job ID (fyrsta beiðni í hugmynd),
+  // gildi = Set af job IDs sem bætt var við. Session-only (hverfur við refresh
+  // ef notandi hefur ekki samþykkt hugmyndina).
+  const _manualAdditionsBySeed = new Map();
+  window.addBeidniToIdea = function(seedJobId, jobId) {
+    if (!_manualAdditionsBySeed.has(seedJobId)) _manualAdditionsBySeed.set(seedJobId, new Set());
+    _manualAdditionsBySeed.get(seedJobId).add(jobId);
+    closeAddBeidniPicker();
+    renderHugmyndir();
+  };
 
   // Reikna cluster af krana-beiðnum (2-10 stopp, capacity ≤ 10 taka-kar).
   // Nota greedy nearest-neighbor með marginal-cost prófi.
@@ -5697,6 +5708,20 @@
         capacity += kraniLoadOf(next);
       }
       if (cluster.length < 2) continue;
+      // Apply manual additions: director hefur handvirkt bætt við beiðni í
+      // þessa hugmynd. Nota seed = fyrsta beiðni, uppfæra capacity.
+      const seedId = cluster[0].id;
+      const addedIds = _manualAdditionsBySeed.get(seedId);
+      if (addedIds) {
+        for (const addedId of addedIds) {
+          if (cluster.length >= 4) break;
+          const added = krani.find(j => j.id === addedId);
+          if (!added || cluster.includes(added) || used.has(added.id)) continue;
+          if (capacity + kraniLoadOf(added) > 10) continue;
+          cluster.push(added);
+          capacity += kraniLoadOf(added);
+        }
+      }
       // Filter out dismissed members
       const ideaIdDraft = 'krani_' + cluster.map(j => j.id).sort().join('_');
       const finalCluster = cluster.filter(j => !_dismissedIdeaMembers.has(ideaIdDraft + ':' + j.id));
@@ -5804,10 +5829,15 @@
     const savingsMin = Math.round(idea.savingsMin || 0);
     const savingsKm  = Number(idea.savingsKm || 0).toFixed(1);
     const safeId = idea.id.replace(/'/g, "\\'");
+    const canAddMore = !approved && idea.vClass === 'krani' && idea.jobs.length < 4;
+    const addBtn = canAddMore
+      ? `<button class="btn btn-outline btn-sm" onclick="openAddBeidniPicker('${safeId}')">＋ Bæta við beiðni</button>`
+      : '';
     const actions = approved
       ? `<button class="btn btn-outline btn-sm" data-map-toggle="${safeId}" onclick="toggleIdeaMap('${safeId}')">🗺 Sýna leið</button>
          <button class="btn btn-outline btn-sm" onclick="undoApproveHugmynd('${safeId}')">↩ Afturkalla samþykkt</button>`
       : `<button class="btn btn-outline btn-sm" data-map-toggle="${safeId}" onclick="toggleIdeaMap('${safeId}')">🗺 Sýna leið</button>
+         ${addBtn}
          <button class="btn btn-rust btn-sm" onclick="approveHugmynd('${safeId}')">✓ Samþykkja</button>`;
     const statusBadge = approved
       ? `<span style="background:#dcfce7;color:#065f46;border:1px solid #10b981;padding:0.2rem 0.55rem;border-radius:10px;font-size:0.7rem;font-weight:800;letter-spacing:0.03em;margin-left:0.4rem;">SAMÞYKKT</span>`
@@ -5876,6 +5906,59 @@
     }
     showToast('✓ Hugmynd samþykkt — sýnileg bílstjórum');
     renderHugmyndir();
+  };
+
+  // Opens picker modal with compatible open beiðnir that director may add to a candidate idea.
+  // Compatible = same vehicle class, has coords, 'Senda á alla', not already in a sameiningGroup,
+  // not already in this idea.
+  window.openAddBeidniPicker = function(ideaId) {
+    const idea = computeIdeas().find(x => x.id === ideaId);
+    if (!idea) { showToast('Hugmynd fannst ekki'); return; }
+    const vClass = idea.vClass;
+    const alreadyIn = new Set(idea.jobs.map(j => j.id));
+    const eligible = (appData.jobs || []).filter(j =>
+      (j.status === 'new' || !j.status) &&
+      (j.driver === 'all' || !j.driver) &&
+      !j.sameiningGroupId &&
+      j.lat != null && j.lng != null &&
+      vehicleClass(j) === vClass &&
+      !alreadyIn.has(j.id)
+    );
+    // Also filter out beiðnir already in some OTHER candidate idea
+    // (would double-book them). Director must first remove them from the other idea.
+    const inOtherIdeas = new Set();
+    computeIdeas().forEach(oi => { if (oi.id !== ideaId) oi.jobs.forEach(j => inOtherIdeas.add(j.id)); });
+    const final = eligible.filter(j => !inOtherIdeas.has(j.id));
+    const seedId = idea.order[0].id;
+    const safeSeed = seedId.replace(/'/g, "\\'");
+    const existing = document.getElementById('add-beidni-modal');
+    if (existing) existing.remove();
+    const modal = document.createElement('div');
+    modal.id = 'add-beidni-modal';
+    modal.className = 'geo-results-modal';
+    const emptyHtml = `<div style="padding:1rem;color:var(--muted);text-align:center;">Engar fleiri krana-beiðnir í boði með hnit sem passa í þessa hugmynd. ${idea.jobs.length >= 4 ? '(Hámark 4 beiðnir náð.)' : ''}</div>`;
+    const listHtml = final.length === 0 ? emptyHtml : final.map(j => {
+      const safeJob = j.id.replace(/'/g, "\\'");
+      return `
+        <div class="geo-result-item" onclick="addBeidniToIdea('${safeSeed}', '${safeJob}')">
+          <div style="font-weight:700;">${escHtml(j.where || '—')}</div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-top:0.2rem;">${escHtml(j.jobTypeLabel || '')} ${j.company ? '· ' + escHtml(j.company) : ''} <span style="opacity:0.6;">(Beiðni #${j.seq || '—'})</span></div>
+        </div>`;
+    }).join('');
+    modal.innerHTML = `
+      <div class="geo-results-box">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+          <h3 style="margin:0;font-size:1.05rem;">＋ Bæta við beiðni í hugmynd</h3>
+          <button type="button" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--muted);" onclick="closeAddBeidniPicker()">×</button>
+        </div>
+        ${listHtml}
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeAddBeidniPicker(); });
+  };
+  window.closeAddBeidniPicker = function() {
+    const m = document.getElementById('add-beidni-modal');
+    if (m) m.remove();
   };
 
   window.undoApproveHugmynd = async function(groupId) {
