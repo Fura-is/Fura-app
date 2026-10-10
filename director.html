@@ -5635,8 +5635,8 @@
       if (used.has(seed.id)) continue;
       const cluster = [seed];
       let capacity = kraniLoadOf(seed);
-      // Greedy extension
-      while (cluster.length < 10) {
+      // Greedy extension — max 4 beiðnir per hugmynd (ákveðið í samtali)
+      while (cluster.length < 4) {
         const last = cluster[cluster.length - 1];
         const choices = krani.filter(j => !cluster.includes(j) && !used.has(j.id) && (capacity + kraniLoadOf(j)) <= 10);
         if (!choices.length) break;

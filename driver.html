@@ -2219,17 +2219,21 @@
             <div style="font-size:0.78rem;color:var(--muted);">${escapeHtml(localizedJobTypeLabel(j))} ${j.company ? '· ' + escapeHtml(j.company) : ''} <span style="opacity:0.6;">(#${j.seq || '—'})</span></div>
           </div>
         </div>`).join('');
+      const n = p.order.length;
+      const btnTxt = n === 2
+        ? (_lang === 'en' ? '🗺 View & accept both' : '🗺 Skoða og taka báðar')
+        : (_lang === 'en' ? `🗺 View & accept all ${n}` : `🗺 Skoða og taka allar ${n}`);
       return `
         <div class="job-card" style="border-left:4px solid #f59e0b;">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;margin-bottom:0.6rem;">
             <div>
               <div style="font-weight:800;font-size:1.05rem;">💡 ${_lang === 'en' ? 'Idea' : 'Hugmynd'} #${i+1}</div>
-              <div style="font-size:0.8rem;color:var(--muted);margin-top:0.1rem;">${vLabel}</div>
+              <div style="font-size:0.8rem;color:var(--muted);margin-top:0.1rem;">${vLabel} · ${n} ${_lang === 'en' ? 'stops' : 'stopp'}</div>
             </div>
-            <div style="background:#ecfdf5;border:1px solid #10b981;color:#065f46;font-weight:800;padding:0.4rem 0.65rem;border-radius:8px;font-size:0.78rem;white-space:nowrap;">${_lang === 'en' ? 'Saves' : 'Sparar'} ${p.savingsMin.toFixed(0)} ${_lang === 'en' ? 'min' : 'mín'}</div>
+            <div style="background:#ecfdf5;border:1px solid #10b981;color:#065f46;font-weight:800;padding:0.4rem 0.65rem;border-radius:8px;font-size:0.78rem;white-space:nowrap;">${_lang === 'en' ? 'Saves' : 'Sparar'} ${(p.savingsMin || 0).toFixed(0)} ${_lang === 'en' ? 'min' : 'mín'}</div>
           </div>
           <div style="margin:0.3rem 0 0.6rem;">${stops}</div>
-          <button class="btn btn-rust btn-full" onclick="openSameiningModal('${p.order[0].id}','${p.order[1].id}')">${_lang === 'en' ? '🗺 View & accept' : '🗺 Skoða og taka báðar'}</button>
+          <button class="btn btn-rust btn-full" onclick="openSameiningModal('${p.id}')">${btnTxt}</button>
         </div>`;
     }).join('');
   }
@@ -2239,17 +2243,26 @@
     // Only "new" and "all" beiðnir get banners (not already-claimed)
     if (job.status !== 'new' && job.status) return '';
     if (job.driver && job.driver !== 'all') return '';
-    const match = findPartnerFor(job.id);
-    if (!match) return '';
-    const p = match.partner;
-    const partnerDesc = `#${p.seq || '—'} · ${p.where || ''}`;
+    if (!job.sameiningGroupId) return '';
+    const d = getData();
+    const members = (d.jobs || []).filter(j => j.sameiningGroupId === job.sameiningGroupId && j.id !== job.id);
+    if (!members.length) return '';
+    const forMe = (job.sameiningGroupDriver === 'all' || !job.sameiningGroupDriver)
+               || nameMatch(job.sameiningGroupDriver, currentDriverName);
+    if (!forMe) return '';
+    const n = members.length;
+    const label = n === 1
+      ? (_lang === 'en' ? `Combines with #${members[0].seq || '—'} · ${members[0].where || ''}` : `Passar við #${members[0].seq || '—'} · ${members[0].where || ''}`)
+      : (_lang === 'en' ? `Combines with ${n} other requests` : `Passar við ${n} aðrar beiðnir`);
+    const savingsMin = job.sameiningGroupSavingsMin || 0;
+    const savingsKm = job.sameiningGroupSavingsKm || 0;
     return `
       <div class="sameining-banner">
         <div class="sameining-banner-text">
-          💡 ${_lang === 'en' ? 'Combines with' : 'Passar við'} ${escapeHtml(partnerDesc)}
-          <small>${_lang === 'en' ? 'Saves' : 'Sparar'} ${match.savingsMin.toFixed(0)} ${_lang === 'en' ? 'min' : 'mín'} · ${match.savingsKm.toFixed(1)} km</small>
+          💡 ${escapeHtml(label)}
+          <small>${_lang === 'en' ? 'Saves' : 'Sparar'} ${savingsMin} ${_lang === 'en' ? 'min' : 'mín'} · ${savingsKm} km</small>
         </div>
-        <button type="button" class="sameining-banner-btn" onclick="openSameiningModal('${job.id}', '${p.id}')">${_lang === 'en' ? 'View' : 'Skoða'}</button>
+        <button type="button" class="sameining-banner-btn" onclick="openSameiningModal('${job.sameiningGroupId}')">${_lang === 'en' ? 'View' : 'Skoða'}</button>
       </div>`;
   }
 
@@ -2258,20 +2271,21 @@
   }
 
   let _sameiningMap = null;
-  window.openSameiningModal = function(idA, idB) {
+  // Opens hugmynd modal fyrir heilan hóp (2-4 beiðnir) með sameiningGroupId sem key.
+  window.openSameiningModal = function(groupId) {
     const d = getData();
-    const a = d.jobs.find(j => j.id === idA);
-    const b = d.jobs.find(j => j.id === idB);
-    if (!a || !b) return;
-    const pA = { lat: a.lat, lng: a.lng };
-    const pB = { lat: b.lat, lng: b.lng };
-    const bAB = drvMinutes([DRV_FURA_BASE, pA, pB, DRV_FURA_BASE]);
-    const bBA = drvMinutes([DRV_FURA_BASE, pB, pA, DRV_FURA_BASE]);
-    const bundle = bAB.minutes <= bBA.minutes ? { ...bAB, order: [a, b] } : { ...bBA, order: [b, a] };
-    const baseA = drvMinutes([DRV_FURA_BASE, pA, DRV_FURA_BASE]);
-    const baseB = drvMinutes([DRV_FURA_BASE, pB, DRV_FURA_BASE]);
-    const savingsMin = (baseA.minutes + baseB.minutes) - bundle.minutes;
-    const savingsKm = (baseA.km + baseB.km) - bundle.km;
+    const members = (d.jobs || []).filter(j => j.sameiningGroupId === groupId);
+    if (members.length < 2) { showToast(_lang === 'en' ? 'Group no longer available' : 'Hópur ekki lengur í boði'); return; }
+    const orderIds = members[0].sameiningGroupOrder || members.map(m => m.id);
+    const ordered = orderIds.map(id => members.find(m => m.id === id)).filter(Boolean);
+    const first = ordered[0];
+    const savingsMin = first.sameiningGroupSavingsMin || 0;
+    const savingsKm = first.sameiningGroupSavingsKm || 0;
+    const n = ordered.length;
+    const titleTxt = _lang === 'en' ? `Combine ${n} requests` : `Sameina ${n} beiðnir`;
+    const btnTxt = n === 2
+      ? (_lang === 'en' ? '✓ Accept both' : '✓ Taka báðar')
+      : (_lang === 'en' ? `✓ Accept all ${n}` : `✓ Taka allar ${n}`);
 
     const existing = document.getElementById('sameining-modal');
     if (existing) existing.remove();
@@ -2281,23 +2295,23 @@
     modal.innerHTML = `
       <div class="sameining-modal-box">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
-          <h3 style="margin:0;font-size:1.1rem;">💡 ${_lang === 'en' ? 'Combine two requests' : 'Sameina tvær beiðnir'}</h3>
+          <h3 style="margin:0;font-size:1.1rem;">💡 ${titleTxt}</h3>
           <button type="button" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--muted);" onclick="closeSameiningModal()">×</button>
         </div>
         <div style="background:#ecfdf5;border:1px solid #10b981;color:#065f46;font-weight:800;padding:0.5rem 0.75rem;border-radius:8px;font-size:0.85rem;margin-bottom:0.5rem;">
-          ${_lang === 'en' ? 'Saves' : 'Sparar'} ${savingsMin.toFixed(0)} ${_lang === 'en' ? 'min' : 'mín'} · ${savingsKm.toFixed(1)} km
+          ${_lang === 'en' ? 'Saves' : 'Sparar'} ${savingsMin} ${_lang === 'en' ? 'min' : 'mín'} · ${savingsKm} km
         </div>
-        ${bundle.order.map((j, i) => `
+        ${ordered.map((j, i) => `
           <div style="display:flex;gap:0.5rem;align-items:flex-start;padding:0.5rem 0;border-bottom:1px dashed var(--mid);">
             <div style="background:var(--rust);color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.75rem;flex-shrink:0;">${i+1}</div>
             <div style="flex:1;min-width:0;">
               <div style="font-weight:700;">${escapeHtml(j.where || '—')}</div>
-              <div style="font-size:0.78rem;color:var(--muted);">${escapeHtml(localizedJobTypeLabel(j))} ${j.company ? '· '+escapeHtml(j.company) : ''}</div>
+              <div style="font-size:0.78rem;color:var(--muted);">${escapeHtml(localizedJobTypeLabel(j))} ${j.company ? '· '+escapeHtml(j.company) : ''} <span style="opacity:0.6;">(#${j.seq || '—'})</span></div>
             </div>
           </div>
         `).join('')}
         <div class="sameining-modal-map" id="sameining-modal-map"></div>
-        <button class="btn btn-rust btn-full" style="margin-top:0.5rem;" onclick="claimBoth('${a.id}','${b.id}')">${_lang === 'en' ? '✓ Accept both' : '✓ Taka báðar'}</button>
+        <button class="btn btn-rust btn-full" style="margin-top:0.5rem;" onclick="claimGroup('${groupId}')">${btnTxt}</button>
         <button class="btn btn-outline btn-full btn-sm" style="margin-top:0.5rem;" onclick="closeSameiningModal()">${_lang === 'en' ? 'Cancel' : 'Hætta við'}</button>
       </div>`;
     document.body.appendChild(modal);
@@ -2310,10 +2324,10 @@
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM', maxZoom: 18 }).addTo(_sameiningMap);
       L.circleMarker([DRV_FURA_BASE.lat, DRV_FURA_BASE.lng], { radius: 6, color: '#1a1512', fillColor:'#fff', fillOpacity:1, weight:2 })
         .bindPopup('Fura').addTo(_sameiningMap);
-      bundle.order.forEach((j, i) => {
-        L.marker([j.lat, j.lng]).bindPopup(`<b>${i+1}.</b> ${escapeHtml(j.where || '')}`).addTo(_sameiningMap);
+      ordered.forEach((j, i) => {
+        if (j.lat != null) L.marker([j.lat, j.lng]).bindPopup(`<b>${i+1}.</b> ${escapeHtml(j.where || '')}`).addTo(_sameiningMap);
       });
-      const points = [DRV_FURA_BASE, ...bundle.order.map(j=>({lat:j.lat,lng:j.lng})), DRV_FURA_BASE];
+      const points = [DRV_FURA_BASE, ...ordered.filter(j => j.lat != null).map(j=>({lat:j.lat,lng:j.lng})), DRV_FURA_BASE];
       const coords = points.map(p=>`${p.lng},${p.lat}`).join(';');
       fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`)
         .then(r => r.json()).then(d => {
@@ -2339,17 +2353,22 @@
     const m = document.getElementById('sameining-modal');
     if (m) m.remove();
   };
-  window.claimBoth = async function(idA, idB) {
+  // Úthlutar bílstjóra á ALLA beiðnir hóps (2-4 beiðnir).
+  window.claimGroup = async function(groupId) {
     const d = getData();
-    const a = d.jobs.find(j => j.id === idA);
-    const b = d.jobs.find(j => j.id === idB);
-    if (!a || !b) return;
+    const members = (d.jobs || []).filter(j => j.sameiningGroupId === groupId);
+    if (!members.length) return;
     const slug = currentDriverName.toLowerCase().replace(/\s+/g,'_');
-    await fsSetJob({ ...a, driver: slug, driverLabel: currentDriverName, status: 'accepted' });
-    await fsSetJob({ ...b, driver: slug, driverLabel: currentDriverName, status: 'accepted' });
+    for (const m of members) {
+      await fsSetJob({ ...m, driver: slug, driverLabel: currentDriverName, status: 'accepted' });
+    }
     closeSameiningModal();
     window.switchTab('vinnsla');
-    showToast(_lang === 'en' ? '✓ You took both' : '✓ Þú tókst við báðum');
+    const n = members.length;
+    showToast(_lang === 'en' ? `✓ You took all ${n}` : `✓ Þú tókst við öllum ${n}`);
+  };
+  // Backward-compat: ef eitthvað gamalt kall notar claimBoth
+  window.claimBoth = window.claimGroup;
   };
 </script>
 
