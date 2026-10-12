@@ -1481,9 +1481,10 @@
       // onAuthStateChanged tekur yfir hér — kallar completeLogin() þegar auth er klárað
     } catch (e) {
       console.warn('login failed', e.code);
-      errEl.textContent = (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential')
-        ? 'Rangt lykilorð'
-        : (e.code === 'auth/too-many-requests' ? 'Of margar misheppnaðar tilraunir — bíddu í 5 mín' : 'Villa við innskráningu: ' + e.code);
+      // Allar misheppnaðar tilraunir birtast sem 'Rangt lykilorð' — notandi þarf
+      // ekki að vita um Firebase rate-limiting í bakgrunni (ekki hægt að slökkva
+      // á henni, hún ver gegn brute-force).
+      errEl.textContent = 'Rangt lykilorð';
       errEl.style.display = 'block';
     }
   };
