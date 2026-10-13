@@ -20,14 +20,18 @@ service cloud.firestore {
       allow update:        if isSignedIn();
     }
 
-    // Gámar og kör — directors inventory. Allir lesa, aðeins director skrifar.
+    // Gámar og kör — directors inventory. Driver uppfærir status þegar beiðni
+    // klárast (markDone kallar á applyContainerRentalLogic sem skrifar hér), svo
+    // innskráðir mega búa til og uppfæra. Aðeins director má eyða.
     match /containers/{id} {
-      allow read:  if isSignedIn();
-      allow write: if isDirector();
+      allow read:          if isSignedIn();
+      allow create, update: if isSignedIn();
+      allow delete:        if isDirector();
     }
     match /kars/{id} {
-      allow read:  if isSignedIn();
-      allow write: if isDirector();
+      allow read:          if isSignedIn();
+      allow create, update: if isSignedIn();
+      allow delete:        if isDirector();
     }
 
     // Driver registration & approved list — anyone signed-in getur lesið (fyrir
