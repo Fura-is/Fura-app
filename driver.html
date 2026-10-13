@@ -460,7 +460,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
   import { getFirestore, collection, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
-  import { getAuth, signInAnonymously, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+  import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAdDfbGWGnBHqCxfBQvay36JDXLTPA12SY",
@@ -476,14 +476,20 @@
   const auth = getAuth(fireApp);
 
   // Anonymous auth áður en við tengjumst Firestore (hertar reglur krefjast innskráningar).
-  // Appið bíður eftir að auth session sé til áður en onSnapshot listeners fara af stað
-  // — annars myndu þeir hitta permission-denied á fyrsta andartaki.
-  let _authReadyResolve;
-  const authReady = new Promise(res => { _authReadyResolve = res; });
+  // Lífshringurinn er auth-driven (sjá onAuthStateChanged neðar) — ef signInAnonymously
+  // tekur lengri tíma en við bjóst, eða fellur, bíða listeners í stað þess að hoppa af
+  // stað án auth (sem gaf tóma skjá á slakri 4G/wifi tenging).
   setPersistence(auth, browserLocalPersistence)
     .then(() => signInAnonymously(auth))
-    .then(() => _authReadyResolve())
-    .catch(e => { console.warn('anon auth failed', e.code || e.message); _authReadyResolve(); });
+    .catch(e => console.warn('anon auth failed', e.code || e.message));
+
+  const _activeUnsubs = [];
+  function tearDownListeners() {
+    while (_activeUnsubs.length) {
+      const unsub = _activeUnsubs.pop();
+      try { unsub(); } catch (e) { console.warn('listener teardown failed', e); }
+    }
+  }
 
   // ── LOCAL CACHE ────────────────────────────────────────────────────────────
   let appData = { jobs: [], driverRequests: [], approvedDrivers: [], containers: [] };
@@ -507,27 +513,28 @@
   }
 
   // ── REAL-TIME LISTENERS ────────────────────────────────────────────────────
-  // Wait for anonymous auth áður en við tengjumst Firestore — annars myndu
-  // listeners klikka með permission-denied á fyrstu millisekúndu.
-  authReady.then(() => {
-    onSnapshot(collection(db,'jobs'), snap => {
+  // Lífshringurinn drifinn af onAuthStateChanged — setupListeners þegar
+  // anonymous session er komin, teardown annars.
+  function setupListeners() {
+    tearDownListeners();
+    const onErr = (label) => (err) => console.error('[fs listener error] ' + label, err.code || '', err.message || err);
+    _activeUnsubs.push(onSnapshot(collection(db,'jobs'), snap => {
       appData.jobs = snap.docs.map(d => ({id:d.id,...d.data()}));
       if (currentDriverName) renderAll();
-    });
-    onSnapshot(collection(db,'driverRequests'), snap => {
+    }, onErr('jobs')));
+    _activeUnsubs.push(onSnapshot(collection(db,'driverRequests'), snap => {
       appData.driverRequests = snap.docs.map(d => ({id:d.id,...d.data()}));
-    });
-    onSnapshot(collection(db,'containers'), snap => {
+    }, onErr('driverRequests')));
+    _activeUnsubs.push(onSnapshot(collection(db,'containers'), snap => {
       appData.containers = snap.docs.map(d => {
         const data = d.data();
         const displayId = data.id || d.id.split('__')[0];
         const size = data.size || (d.id.includes('__') ? d.id.split('__')[1] : 'litill');
         return { ...data, _key: d.id, id: displayId, size };
       });
-    });
-    onSnapshot(collection(db,'approvedDrivers'), snap => {
+    }, onErr('containers')));
+    _activeUnsubs.push(onSnapshot(collection(db,'approvedDrivers'), snap => {
       appData.approvedDrivers = snap.docs.map(d => ({id:d.id,...d.data()}));
-      // Auto-login if we have a saved session and the driver is still approved
       if (!currentDriverName) {
         const savedName = localStorage.getItem('fura_driver_session');
         if (savedName) {
@@ -536,7 +543,12 @@
           else localStorage.removeItem('fura_driver_session');
         }
       }
-    });
+    }, onErr('approvedDrivers')));
+  }
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) setupListeners();
+    else tearDownListeners();
   });
 
   function autoLoginDriver(name) {
