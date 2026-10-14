@@ -1810,9 +1810,10 @@
   }
 
   window.markDone = async function(id, isSkipta) {
+    console.log('[Sótt] markDone kallað', { id, isSkipta, driver: currentDriverName, time: new Date().toISOString() });
     const d = getData();
     const job = d.jobs.find(j => j.id === id);
-    if (!job) return;
+    if (!job) { console.warn('[Sótt] job fannst ekki', id); return; }
     const updated = { ...job, status: 'done', completedAt: new Date().toISOString() };
     const completionNote = (document.getElementById('completion-note-'+id)||{value:''}).value.trim();
     // Collect PRIMARY jobType numbers
@@ -1949,8 +1950,9 @@
   };
 
   window.saveFixDone = async function(id, isSkipta) {
+    console.log('[Vista breytingar] saveFixDone kallað', { id, isSkipta, time: new Date().toISOString() });
     const job = appData.jobs.find(j => j.id === id);
-    if (!job) return;
+    if (!job) { console.warn('[Vista breytingar] job fannst ekki', id); return; }
     const updated = { ...job, status: 'done', updatedAt: new Date().toISOString() };
     // Collect primary + optional secondary numbers (same as markDone)
     const collected = collectSectionNumbers(id, job.jobType, '');
@@ -2059,7 +2061,10 @@
   function showToast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg; t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2500);
+    // Villu-toastar þurfa lengri tíma — notandi gæti verið að horfa annað
+    // þegar Sótt mistókst og þarf að sjá villuna áður en hún hverfur.
+    const isError = /^❌|^⚠|villa|mistókst|rangt|fannst ekki/i.test(msg);
+    setTimeout(() => t.classList.remove('show'), isError ? 6000 : 2500);
   }
 
   // ── SIZE PICK MODAL (asks driver which size when gámanúmer is ambiguous) ──
@@ -2102,6 +2107,7 @@
   let _currentExtraJobId = null;
 
   window.openExtraPicker = function(jobId, isKar) {
+    console.log('[Bæta við] openExtraPicker (driver) kallað', { jobId, isKar, time: new Date().toISOString() });
     _currentExtraJobId = jobId;
     const titleEl = document.getElementById('extra-modal-title');
     const promptEl = document.getElementById('extra-modal-prompt');

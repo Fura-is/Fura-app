@@ -5510,7 +5510,9 @@
   function showToast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg; t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2500);
+    // Villu-toastar þurfa lengri tíma — notandi gæti verið að horfa annað
+    const isError = /^❌|^⚠|villa|mistókst|rangt|fannst ekki/i.test(msg);
+    setTimeout(() => t.classList.remove('show'), isError ? 6000 : 2500);
   }
 
   // ── DIRECTOR AUKAGÁMUR PICKER (same as driver, but for completeJob & Breyta) ──
@@ -5523,10 +5525,13 @@
   // reach module-scope _editingJobId (inline onclick runs in global scope and
   // can't see module variables directly).
   window.addExtraInEdit = function() {
+    console.log('[Bæta við] addExtraInEdit kallað', { _editingJobId, time: new Date().toISOString() });
     if (_editingJobId) openExtraPickerDir(_editingJobId);
+    else console.warn('[Bæta við] _editingJobId er null — takkinn virkaði ekki');
   };
 
   window.openExtraPickerDir = function(jobId) {
+    console.log('[Bæta við] openExtraPickerDir kallað', { jobId, time: new Date().toISOString() });
     _currentExtraJobIdDir = jobId;
     document.getElementById('dir-extra-action-step').style.display = 'block';
     document.getElementById('dir-extra-efni-step').style.display = 'none';
