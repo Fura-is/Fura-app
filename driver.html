@@ -535,6 +535,7 @@
     }, onErr('containers')));
     _activeUnsubs.push(onSnapshot(collection(db,'approvedDrivers'), snap => {
       appData.approvedDrivers = snap.docs.map(d => ({id:d.id,...d.data()}));
+      _initialDataLoaded = true;
       if (!currentDriverName) {
         const savedName = localStorage.getItem('fura_driver_session');
         if (savedName) {
@@ -578,6 +579,10 @@
   let currentTab = 'utkolun';
   let _delayingJobId = null;
   let _fixingDoneId = null;
+  // true þegar approvedDrivers snapshot hefur fýrið í fyrsta sinn — notað í
+  // doLogin til að geta beðið og endurreynt þegar notandi smellir Skrá inn
+  // áður en Firebase hefur sent listann.
+  let _initialDataLoaded = false;
 
   function nameMatch(a, b) { return a && b && a.trim().toLowerCase() === b.trim().toLowerCase(); }
   function todayISO() {
@@ -1062,12 +1067,23 @@
     showMsg('reg-success', t('reg_success'));
   };
 
-  window.doLogin = function() {
+  window.doLogin = async function(_isRetry) {
     hideAllMsgs();
     const name = document.getElementById('login-name').value.trim();
     const pw = document.getElementById('login-password').value;
     if (!name || !pw) { showMsg('login-error', t('login_error_empty')); return; }
     const d = getData();
+    // Ef gögnin eru ekki enn komin úr Firebase (approvedDrivers ekki hlaðið),
+    // bíðum við 1.5 sek og reynum aftur. Þetta kemur í veg fyrir "Rangt lykilorð"
+    // á fyrsta smelli á slaka tengsl, þar sem notandi smellti áður en snapshot
+    // var kominn. Reynt aðeins einu sinni til að forðast óendalega loop.
+    const noDataYet = !_initialDataLoaded || (d.approvedDrivers||[]).length === 0;
+    if (noDataYet && !_isRetry) {
+      showMsg('login-pending', _lang === 'en' ? 'Loading...' : 'Hleð gögnum...');
+      await new Promise(res => setTimeout(res, 1500));
+      hideAllMsgs();
+      return doLogin(true);
+    }
     const pending = (d.driverRequests||[]).find(r => nameMatch(r.name, name) && r.password === pw);
     if (pending) { showMsg('login-pending', t('login_pending')); return; }
     const approved = (d.approvedDrivers||[]).find(r => nameMatch(r.name, name) && r.password === pw);
