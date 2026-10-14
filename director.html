@@ -5620,18 +5620,28 @@
   // Fura base — Hringhella 3, 221 Hafnarfjörður (frá Nominatim OSM)
   const FURA_BASE = { lat: 64.0443643, lng: -21.9972741, name: 'Hringhella 3, Hafnarfjörður' };
 
-  // Vehicle class classification. Krani (sækir kör) is isolated from gámabílar.
-  const KRANI_EQUIP = new Set(['krani']);
-  const GAMABILL_EQUIP = new Set(['stor-gamur', 'litill-gamur']);
+  // Vehicle class classification. Þrír aðskildir bílaflokkar sem geta aldrei
+  // blandast í sömu hugmynd — bíllinn er annar hvor þessi þrír, aldrei blandaður.
+  //   krani     — ber 10 kör, aðeins fyrir kar-vinnu
+  //   pallbill  — ber 4 kör, einnig fyrir kar-vinnu
+  //   gamabill  — ber 1 gám, pör aðeins
   const KAR_TYPES = new Set(['taka-kar','losa-kar','skipta-kari','vantar-kar']);
+  const GAMABILL_EQUIP = new Set(['stor-gamur', 'litill-gamur']);
   function vehicleClass(job) {
-    // Krani handles kör-work OR when equipment is explicitly krani
-    if (KRANI_EQUIP.has(job.equipment)) return 'krani';
-    if (KAR_TYPES.has(job.jobType) || KAR_TYPES.has(job.jobType2 || '')) return 'krani';
+    // Explicit equipment yfirgnæfir jobType — director veit hvað hann þarf
+    if (job.equipment === 'krani') return 'krani';
+    if (job.equipment === 'pallbill') return 'pallbill';
     if (GAMABILL_EQUIP.has(job.equipment)) return 'gamabill';
-    // Default to gamabill for pallbill/trailer; annad or empty excluded from sameining
-    if (job.equipment === 'pallbill' || job.equipment === 'trailer') return 'gamabill';
+    if (job.equipment === 'trailer') return 'gamabill';
+    // Fallback: kar-beiðni án skýrs equipment lendir á krana (default)
+    if (KAR_TYPES.has(job.jobType) || KAR_TYPES.has(job.jobType2 || '')) return 'krani';
     return null;
+  }
+  // Hámark kör sem bíllinn ber. Notað í capacity-check greedy clustering.
+  function vehicleCapacity(vClass) {
+    if (vClass === 'krani') return 10;
+    if (vClass === 'pallbill') return 4;
+    return 1; // gamabill (1 gámur)
   }
 
   // Haversine great-circle distance in km
@@ -5723,7 +5733,7 @@
         const smart = minutesForRoute([FURA_BASE, posT, posV, FURA_BASE]);
         const savingsMin = (baseA.minutes + baseB.minutes) - smart.minutes;
         const savingsKm  = (baseA.km + baseB.km) - smart.km;
-        if (savingsMin < 10) continue;
+        if (savingsMin < 5) continue; // Lækkað úr 10 í 5 mín (samræmi við aðrar hugmyndir)
         if (!best || savingsMin > best.savingsMin) {
           best = { v, savingsMin, savingsKm, bundleKm: smart.km, bundleMin: smart.minutes };
         }
@@ -5745,70 +5755,106 @@
     return { ideas, usedIds: used };
   }
 
-  // Reikna cluster af krana-beiðnum (2-10 stopp, capacity ≤ 10 taka-kar).
-  // Nota greedy nearest-neighbor með marginal-cost prófi.
-  function computeKraniClusters(candidates) {
-    const krani = candidates.filter(j => vehicleClass(j) === 'krani');
+  // Multi-stop clustering fyrir krani (10 kör) og pallbill (4 kör). Greedy
+  // nearest-neighbor með marginal-cost prófi fyrir samsetningu, svo full TSP
+  // (brute-force permutations) til að finna STYSTU röðuni fyrir final cluster.
+  // Sparnaður >= 5 mín til að birtast.
+  function computeMultiStopClusters(candidates, vClass) {
+    const maxCap = vehicleCapacity(vClass);
+    const maxStops = 4;
+    const pool = candidates.filter(j => vehicleClass(j) === vClass);
     const ideas = [];
     const used = new Set();
-    for (const seed of krani) {
+    for (const seed of pool) {
       if (used.has(seed.id)) continue;
       const cluster = [seed];
       let capacity = kraniLoadOf(seed);
-      // Greedy extension — max 4 beiðnir per hugmynd (ákveðið í samtali)
-      while (cluster.length < 4) {
+      while (cluster.length < maxStops) {
         const last = cluster[cluster.length - 1];
-        const choices = krani.filter(j => !cluster.includes(j) && !used.has(j.id) && (capacity + kraniLoadOf(j)) <= 10);
+        const choices = pool.filter(j => !cluster.includes(j) && !used.has(j.id) && (capacity + kraniLoadOf(j)) <= maxCap);
         if (!choices.length) break;
         choices.sort((a, b) => (kmBetween(last, a) || 0) - (kmBetween(last, b) || 0));
         const next = choices[0];
-        // Marginal check: adding next must save time vs doing it alone
         const beforePts = [FURA_BASE, ...cluster.map(j => ({ lat: j.lat, lng: j.lng })), FURA_BASE];
         const afterPts  = [FURA_BASE, ...cluster.map(j => ({ lat: j.lat, lng: j.lng })), { lat: next.lat, lng: next.lng }, FURA_BASE];
         const soloPts   = [FURA_BASE, { lat: next.lat, lng: next.lng }, FURA_BASE];
         const marginalCost = minutesForRoute(afterPts).minutes - minutesForRoute(beforePts).minutes;
         const soloMin = minutesForRoute(soloPts).minutes;
-        if (marginalCost >= soloMin - 5) break;
+        if (marginalCost >= soloMin - 3) break; // Loosened frá 5 í 3 mín svo fleiri clusters myndist
         cluster.push(next);
         capacity += kraniLoadOf(next);
       }
       if (cluster.length < 2) continue;
-      // Apply manual additions: director hefur handvirkt bætt við beiðni í
-      // þessa hugmynd. Nota seed = fyrsta beiðni, uppfæra capacity.
       const seedId = cluster[0].id;
       const addedIds = _manualAdditionsBySeed.get(seedId);
       if (addedIds) {
         for (const addedId of addedIds) {
-          if (cluster.length >= 4) break;
-          const added = krani.find(j => j.id === addedId);
+          if (cluster.length >= maxStops) break;
+          const added = pool.find(j => j.id === addedId);
           if (!added || cluster.includes(added) || used.has(added.id)) continue;
-          if (capacity + kraniLoadOf(added) > 10) continue;
+          if (capacity + kraniLoadOf(added) > maxCap) continue;
           cluster.push(added);
           capacity += kraniLoadOf(added);
         }
       }
-      // Filter out dismissed members
-      const ideaIdDraft = 'krani_' + cluster.map(j => j.id).sort().join('_');
+      const ideaIdDraft = vClass + '_' + cluster.map(j => j.id).sort().join('_');
       const finalCluster = cluster.filter(j => !_dismissedIdeaMembers.has(ideaIdDraft + ':' + j.id));
       if (finalCluster.length < 2) continue;
+      // TSP: prófa allar raðanir (<= 4! = 24) og velja þá stystu
+      const bestOrder = optimalOrder(finalCluster);
       const baseline = finalCluster.reduce((s, j) => s + minutesForRoute([FURA_BASE, { lat: j.lat, lng: j.lng }, FURA_BASE]).minutes, 0);
       const baselineKm = finalCluster.reduce((s, j) => s + minutesForRoute([FURA_BASE, { lat: j.lat, lng: j.lng }, FURA_BASE]).km, 0);
-      const bundlePts = [FURA_BASE, ...finalCluster.map(j => ({ lat: j.lat, lng: j.lng })), FURA_BASE];
+      const bundlePts = [FURA_BASE, ...bestOrder.map(j => ({ lat: j.lat, lng: j.lng })), FURA_BASE];
       const bundle = minutesForRoute(bundlePts);
       const savingsMin = baseline - bundle.minutes;
       const savingsKm = baselineKm - bundle.km;
-      if (savingsMin < 10) continue;
+      if (savingsMin < 5) continue; // Lækkað úr 10 í 5 mín svo fleiri hugmyndir birtast
       finalCluster.forEach(j => used.add(j.id));
       ideas.push({
-        id: 'krani_' + finalCluster.map(j => j.id).sort().join('_'),
-        jobs: finalCluster, order: finalCluster,
+        id: vClass + '_' + bestOrder.map(j => j.id).sort().join('_'),
+        jobs: finalCluster, order: bestOrder,
         savingsMin, savingsKm,
         kraniLoad: finalCluster.reduce((s, j) => s + kraniLoadOf(j), 0),
-        vClass: 'krani'
+        vClass
       });
     }
     return ideas;
   }
+
+  // Brute-force TSP: prófar allar permutations af cluster, skilar þeirri sem
+  // minnkar heildartímann (með 8 mín per stopp + 40 km/klst akstur). Fyrir
+  // <= 4 stopp eru 24 raðanir — trivialt.
+  function optimalOrder(jobs) {
+    if (jobs.length <= 1) return jobs.slice();
+    if (jobs.length === 2) {
+      const [a, b] = jobs;
+      const pA = { lat: a.lat, lng: a.lng }, pB = { lat: b.lat, lng: b.lng };
+      const t1 = minutesForRoute([FURA_BASE, pA, pB, FURA_BASE]).minutes;
+      const t2 = minutesForRoute([FURA_BASE, pB, pA, FURA_BASE]).minutes;
+      return t1 <= t2 ? [a, b] : [b, a];
+    }
+    // Permute (brute force for ≤ 4 stops)
+    const perms = permutations(jobs);
+    let best = perms[0], bestMin = Infinity;
+    for (const p of perms) {
+      const pts = [FURA_BASE, ...p.map(j => ({ lat: j.lat, lng: j.lng })), FURA_BASE];
+      const t = minutesForRoute(pts).minutes;
+      if (t < bestMin) { bestMin = t; best = p; }
+    }
+    return best;
+  }
+  function permutations(arr) {
+    if (arr.length <= 1) return [arr.slice()];
+    const out = [];
+    for (let i = 0; i < arr.length; i++) {
+      const rest = arr.slice(0, i).concat(arr.slice(i + 1));
+      for (const p of permutations(rest)) out.push([arr[i], ...p]);
+    }
+    return out;
+  }
+
+  // Backwards-compat alias — kallað frá eldri call sites
+  function computeKraniClusters(candidates) { return computeMultiStopClusters(candidates, 'krani'); }
 
   // Find NEW suggestions. Krani fær fjölstoppa clustera, gámabíll bara pör.
   function computeIdeas() {
@@ -5823,9 +5869,10 @@
     // Smart taka→vantar pörun fyrst (hefur forgang því hún sparar oft meira);
     // beiðnir sem lenda í smart hugmynd eru teknar úr pool-inu fyrir cluster leit.
     const smart = computeSmartTakaVantarPairs(candidates);
-    const remainingKrani = candidates.filter(j => !smart.usedIds.has(j.id));
-    const kraniIdeas = computeKraniClusters(remainingKrani);
-    const ideas = [...smart.ideas, ...kraniIdeas];
+    const remaining = candidates.filter(j => !smart.usedIds.has(j.id));
+    const kraniIdeas = computeMultiStopClusters(remaining, 'krani');
+    const pallbillIdeas = computeMultiStopClusters(remaining, 'pallbill');
+    const ideas = [...smart.ideas, ...kraniIdeas, ...pallbillIdeas];
     // Gámabíll handles only pairs (bíllinn ber bara 1 gám)
     const gam = candidates.filter(j => vehicleClass(j) === 'gamabill');
     for (let i = 0; i < gam.length; i++) {
@@ -5841,7 +5888,7 @@
         const bundle = bundleAB.minutes <= bundleBA.minutes ? { ...bundleAB, order: [a, b] } : { ...bundleBA, order: [b, a] };
         const savingsKm = baseline.km - bundle.km;
         const savingsMin = baseline.minutes - bundle.minutes;
-        if (savingsMin < 10) continue;
+        if (savingsMin < 5) continue; // Lækkað úr 10 í 5 mín (fleiri gámabíll pör birtast)
         const ideaId = `gam_${a.id}__${b.id}`;
         // Honor director's manual × dismissals
         const kept = bundle.order.filter(j => !_dismissedIdeaMembers.has(ideaId + ':' + j.id));
@@ -5874,7 +5921,9 @@
   const _ideaMaps = {}; // keep Leaflet instances by idea id
 
   function ideaCardHtml(idea, i, approved) {
-    const vClassLabel = idea.vClass === 'krani' ? '🏗 Krani' : '🚛 Gámabíll';
+    const vClassLabel = idea.vClass === 'krani' ? '🏗 Krani'
+                      : idea.vClass === 'pallbill' ? '🛻 Pallbíll'
+                      : '🚛 Gámabíll';
     const safeIdeaId = idea.id.replace(/'/g, "\\'");
     const stops = idea.order.map((j, idx) => {
       const canRemove = !approved && idea.jobs.length > 2;
@@ -5892,13 +5941,16 @@
       </div>
     `;
     }).join('');
+    const capCount = idea.kraniLoad != null ? idea.kraniLoad : idea.jobs.filter(x => kraniLoadOf(x) === 1).length;
     const capacityInfo = idea.vClass === 'krani'
-      ? `<span style="font-size:0.75rem;color:var(--muted);margin-left:0.5rem;">· ${idea.kraniLoad != null ? idea.kraniLoad : idea.jobs.filter(x => kraniLoadOf(x) === 1).length}/10 kör</span>`
+      ? `<span style="font-size:0.75rem;color:var(--muted);margin-left:0.5rem;">· ${capCount}/10 kör</span>`
+      : idea.vClass === 'pallbill'
+      ? `<span style="font-size:0.75rem;color:var(--muted);margin-left:0.5rem;">· ${capCount}/4 kör</span>`
       : '';
     const savingsMin = Math.round(idea.savingsMin || 0);
     const savingsKm  = Number(idea.savingsKm || 0).toFixed(1);
     const safeId = idea.id.replace(/'/g, "\\'");
-    const canAddMore = !approved && idea.vClass === 'krani' && idea.jobs.length < 4;
+    const canAddMore = !approved && (idea.vClass === 'krani' || idea.vClass === 'pallbill') && idea.jobs.length < 4;
     const addBtn = canAddMore
       ? `<button class="btn btn-outline btn-sm" onclick="openAddBeidniPicker('${safeId}')">＋ Bæta við beiðni</button>`
       : '';
@@ -5999,8 +6051,9 @@
     const hasCoords = eligible.filter(j => j.lat != null && j.lng != null);
     const missingCoords = eligible.filter(j => j.lat == null || j.lng == null);
     const n = _createTripSelected.size;
-    const canCreate = n >= 2 && (_createTripVClass === 'krani' ? n <= 4 : n === 2);
-    const limitLabel = _createTripVClass === 'krani' ? '2-4 beiðnir' : 'nákvæmlega 2 beiðnir';
+    const isMulti = _createTripVClass === 'krani' || _createTripVClass === 'pallbill';
+    const canCreate = n >= 2 && (isMulti ? n <= 4 : n === 2);
+    const limitLabel = isMulti ? '2-4 beiðnir' : 'nákvæmlega 2 beiðnir';
     const modal = document.createElement('div');
     modal.id = 'create-trip-modal';
     modal.className = 'geo-results-modal';
@@ -6026,9 +6079,10 @@
         <div style="font-size:0.82rem;color:var(--muted);margin-bottom:0.75rem;">Veldu ${limitLabel} til að tengja saman. Beiðnirnar verða strax samþykktar og bílstjórar sjá þær í sínu 💡 tab.</div>
         <div style="display:flex;gap:0.4rem;margin-bottom:0.75rem;">
           ${vclassBtn('krani', '🏗 Krani')}
+          ${vclassBtn('pallbill', '🛻 Pallbíll')}
           ${vclassBtn('gamabill', '🚛 Gámabíll')}
         </div>
-        ${hasCoords.length === 0 ? `<div style="padding:1rem;color:var(--muted);text-align:center;">Engar opnar ${_createTripVClass === 'krani' ? 'krana' : 'gámabíls'}-beiðnir með hnit í boði.</div>` : hasCoords.map(row).join('')}
+        ${hasCoords.length === 0 ? `<div style="padding:1rem;color:var(--muted);text-align:center;">Engar opnar ${_createTripVClass === 'krani' ? 'krana' : (_createTripVClass === 'pallbill' ? 'pallbíls' : 'gámabíls')}-beiðnir með hnit í boði.</div>` : hasCoords.map(row).join('')}
         ${missingCoords.length > 0 ? `<div style="margin-top:0.75rem;font-size:0.75rem;color:var(--muted);"><strong>${missingCoords.length} beiðnir án hnita</strong> (ekki hægt að tengja því engin leið getur reiknast):</div>${missingCoords.map(row).join('')}` : ''}
         <div style="display:flex;gap:0.5rem;margin-top:1rem;justify-content:flex-end;">
           <button class="btn btn-outline" onclick="closeCreateTripModal()">Hætta við</button>
@@ -6051,9 +6105,11 @@
   window.toggleCreateTripBeidni = function(jobId) {
     if (_createTripSelected.has(jobId)) _createTripSelected.delete(jobId);
     else {
-      const limit = _createTripVClass === 'krani' ? 4 : 2;
+      const isMulti2 = _createTripVClass === 'krani' || _createTripVClass === 'pallbill';
+      const limit = isMulti2 ? 4 : 2;
       if (_createTripSelected.size >= limit) {
-        showToast(`Hámark ${limit} beiðnir fyrir ${_createTripVClass === 'krani' ? 'krana' : 'gámabíl'}`);
+        const flokkiLabel = _createTripVClass === 'krani' ? 'krana' : _createTripVClass === 'pallbill' ? 'pallbíl' : 'gámabíl';
+        showToast(`Hámark ${limit} beiðnir fyrir ${flokkiLabel}`);
         return;
       }
       _createTripSelected.add(jobId);

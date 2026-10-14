@@ -2175,14 +2175,14 @@
   // HUGMYNDAVÉL — Sameining (driver-side)
   // ══════════════════════════════════════════════════════════════════════════
   const DRV_FURA_BASE = { lat: 64.0443643, lng: -21.9972741 };
-  const DRV_KRANI_EQUIP = new Set(['krani']);
   const DRV_GAM_EQUIP = new Set(['stor-gamur', 'litill-gamur']);
   const DRV_KAR_TYPES = new Set(['taka-kar','losa-kar','skipta-kari','vantar-kar']);
   function drvVehicleClass(job) {
-    if (DRV_KRANI_EQUIP.has(job.equipment)) return 'krani';
-    if (DRV_KAR_TYPES.has(job.jobType) || DRV_KAR_TYPES.has(job.jobType2 || '')) return 'krani';
+    if (job.equipment === 'krani') return 'krani';
+    if (job.equipment === 'pallbill') return 'pallbill';
     if (DRV_GAM_EQUIP.has(job.equipment)) return 'gamabill';
-    if (job.equipment === 'pallbill' || job.equipment === 'trailer') return 'gamabill';
+    if (job.equipment === 'trailer') return 'gamabill';
+    if (DRV_KAR_TYPES.has(job.jobType) || DRV_KAR_TYPES.has(job.jobType2 || '')) return 'krani';
     return null;
   }
   function drvKmBetween(a, b) {
@@ -2260,7 +2260,9 @@
       return;
     }
     list.innerHTML = pairs.map((p, i) => {
-      const vLabel = p.vClass === 'krani' ? '🏗 Krani' : '🚛 Gámabíll';
+      const vLabel = p.vClass === 'krani' ? '🏗 Krani'
+                   : p.vClass === 'pallbill' ? '🛻 Pallbíll'
+                   : '🚛 Gámabíll';
       const stops = p.order.map((j, idx) => `
         <div style="display:flex;gap:0.5rem;align-items:flex-start;padding:0.4rem 0;border-bottom:1px dashed var(--mid);">
           <div style="background:var(--rust);color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.75rem;flex-shrink:0;">${idx+1}</div>
