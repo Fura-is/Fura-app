@@ -4301,8 +4301,9 @@
           }
           if (job.extraContainers && job.extraContainers.length > 0) {
             for (const e of job.extraContainers) {
-              const efniTxt = e.action === 'taka' ? (e.efni === 'annad' ? (e.efniLabel || 'Annað') : (e.efni === 'jarn' ? 'Járn' : (e.efni === 'timbur' ? 'Timbur' : ''))) : '';
-              const actionLbl = e.action === 'taka' ? 'Aukagámur tekinn' + (efniTxt ? ' · ' + efniTxt : '') : 'Aukagámur settur';
+              const efniTxt = (e.action === 'taka' || e.action === 'losa') ? (efniLabels[e.efni] || e.efniLabel || '').trim() : '';
+              const baseLbl = e.action === 'losa' ? 'Aukagámur losaður' : (e.action === 'taka' ? 'Aukagámur tekinn' : 'Aukagámur settur');
+              const actionLbl = baseLbl + (efniTxt ? ' · ' + efniTxt : '');
               const dirty = isDirty(e.number);
               html += `<div class="gam-num-box gam-num-extra${dirty ? ' gam-num-warn' : ''}">
                 <div class="gam-num-label">${actionLbl}</div>
@@ -4773,6 +4774,26 @@
             startSum.addedBy = extra.addedBy || '';
             summaries.push(startSum);
           }
+        } else if (extra.action === 'losa') {
+          // Losa: sama gámur — endRental + startRental á nýjum útleigutíma
+          const c = resolveForIntent(num, role, 'end');
+          if (c === 'PENDING') continue;
+          if (!c) {
+            warnings.push(`Aukagámur — ${buildNotFoundWarning(num)}`);
+          } else {
+            const cWithEfni = { ...c, efni: extra.efni || c.efni || '', efniLabel: extra.efniLabel || c.efniLabel || '' };
+            if (c.status === 'utleigu' && c.placedAt) {
+              const { updated: endedC, summary } = endRental(cWithEfni);
+              await fsSetContainer(endedC);
+              if (summary) {
+                summary.fromExtra = true;
+                summary.addedBy = extra.addedBy || '';
+                summaries.push(summary);
+              }
+            }
+            // Nýr útleigutími hefst strax (gámurinn er aftur á sama stað)
+            await fsSetContainer(startRental(cWithEfni));
+          }
         }
       }
     }
@@ -4936,6 +4957,19 @@
           startSum.fromExtra = true;
           startSum.addedBy = extra.addedBy || '';
           summaries.push(startSum);
+        } else if (extra.action === 'losa') {
+          // Losa: sama kar — endRental + startRental (nýr útleigutími á sama stað)
+          const kWithEfni = { ...k, efni: extra.efni || k.efni || '', efniLabel: extra.efniLabel || k.efniLabel || '' };
+          if (k.status === 'utleigu' && k.placedAt) {
+            const { updated: endedK, summary } = endRental(kWithEfni);
+            await fsSetKar(endedK);
+            if (summary) {
+              summary.fromExtra = true;
+              summary.addedBy = extra.addedBy || '';
+              summaries.push(summary);
+            }
+          }
+          await fsSetKar(startRental(kWithEfni));
         }
       }
     }
@@ -5542,12 +5576,15 @@
     document.getElementById('dir-extra-pick-modal').style.display = 'none';
     _currentExtraJobIdDir = null;
   };
+  let _pendingExtraActionDir = null;
   window.extraPickActionDir = function(action) {
     if (!_currentExtraJobIdDir) return;
     if (action === 'setja') {
       addExtraToJobDir(_currentExtraJobIdDir, 'setja', '', '');
       closeExtraPickerDir();
     } else {
+      // taka eða losa — þurfum efni næst
+      _pendingExtraActionDir = action;
       document.getElementById('dir-extra-action-step').style.display = 'none';
       document.getElementById('dir-extra-efni-step').style.display = 'block';
     }
@@ -5559,7 +5596,9 @@
       efniLabel = document.getElementById('dir-extra-efni-other').value.trim();
       if (!efniLabel) { showToast('Lýstu efninu'); return; }
     }
-    addExtraToJobDir(_currentExtraJobIdDir, 'taka', efni, efniLabel);
+    const action = _pendingExtraActionDir || 'taka';
+    addExtraToJobDir(_currentExtraJobIdDir, action, efni, efniLabel);
+    _pendingExtraActionDir = null;
     closeExtraPickerDir();
   };
   window.extraBackToActionDir = function() {
@@ -5586,9 +5625,9 @@
     if (_editingJobId === jobId) renderEditExtras();
   };
   function extraRowLabelDir(e) {
-    const action = e.action === 'taka' ? 'TAKA' : 'SETJA';
-    if (e.action === 'taka') {
-      const efni = e.efni === 'annad' ? (e.efniLabel || 'Annað') : (e.efni === 'jarn' ? 'Járn' : (e.efni === 'timbur' ? 'Timbur' : ''));
+    const action = e.action === 'taka' ? 'TAKA' : (e.action === 'losa' ? 'LOSA' : 'SETJA');
+    if (e.action === 'taka' || e.action === 'losa') {
+      const efni = (efniLabels[e.efni] || e.efniLabel || '').trim();
       return action + (efni ? ' · ' + efni.toUpperCase() : '');
     }
     return action;
@@ -6353,8 +6392,11 @@
       <button class="btn btn-rust btn-full" style="margin-bottom:0.5rem;padding:0.85rem 1rem;text-align:left;line-height:1.3;" onclick="extraPickActionDir('taka')">
         <strong>Taka</strong><br/><small style="font-weight:400;font-size:0.78rem;opacity:0.9;">Fjarlægja gám af staðnum</small>
       </button>
-      <button class="btn btn-rust btn-full" style="padding:0.85rem 1rem;text-align:left;line-height:1.3;" onclick="extraPickActionDir('setja')">
+      <button class="btn btn-rust btn-full" style="margin-bottom:0.5rem;padding:0.85rem 1rem;text-align:left;line-height:1.3;" onclick="extraPickActionDir('setja')">
         <strong>Setja</strong><br/><small style="font-weight:400;font-size:0.78rem;opacity:0.9;">Setja gám á staðinn (tómur)</small>
+      </button>
+      <button class="btn btn-rust btn-full" style="padding:0.85rem 1rem;text-align:left;line-height:1.3;" onclick="extraPickActionDir('losa')">
+        <strong>Losa</strong><br/><small style="font-weight:400;font-size:0.78rem;opacity:0.9;">Tæma gám (fer með, kemur til baka með hann)</small>
       </button>
     </div>
     <div id="dir-extra-efni-step" style="display:none;">
