@@ -38,6 +38,9 @@
     [data-theme="dark"] .msg-pending { background: #4a3e1c; color: #e8c870; }
     [data-theme="dark"] .msg-success { background: #2a3a2e; color: #80c090; }
     [data-theme="dark"] .job-card { box-shadow: 0 2px 10px rgba(0,0,0,0.4); }
+    .action-chip { background: var(--white); color: var(--muted); border: 1.5px solid var(--mid); border-radius: 16px; padding: 0.3rem 0.75rem; font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+    .action-chip:hover { color: var(--ink); border-color: var(--muted); }
+    .action-chip.active { background: var(--rust); color: #fff; border-color: var(--rust); }
     .sameining-banner { background: linear-gradient(90deg, #fef3c7 0%, #fde68a 100%); border: 1.5px solid #f59e0b; border-radius: 8px; padding: 0.6rem 0.8rem; margin: 0 0 0.75rem 0; display: flex; align-items: center; gap: 0.5rem; animation: lightbulbPulse 1.4s ease-in-out infinite; }
     .sameining-banner-text { flex: 1; font-size: 0.82rem; font-weight: 700; color: #78350f; }
     .sameining-banner-text small { display: block; font-size: 0.74rem; font-weight: 500; color: #92400e; margin-top: 0.1rem; }
@@ -1284,14 +1287,18 @@
   }
 
   // Collects the number values entered for one section (primary or secondary).
-  // Returns { fields: { containerNumber?, containerNumberTekinn?, containerNumberSettur?, ...suffix variants }, error }
+  // Notar EFFECTIVE jobType (ef driver breytti aðgerð með action-chip) svo
+  // réttur fjöldi reita sé lesinn. Skilar líka actualAction field ef breytt.
   function collectSectionNumbers(jobId, jobType, suffix) {
     if (!jobType) return { fields: {}, error: null };
-    const isKar = ['taka-kar','losa-kar','skipta-kari','vantar-kar'].includes(jobType);
-    const isSkipta = jobType === 'skipta' || jobType === 'skipta-kari';
+    const d = getData();
+    const jobObj = d.jobs.find(j => j.id === jobId);
+    const effectiveType = jobObj ? getEffectiveJobType(jobObj, jobType, suffix) : jobType;
+    const changed = effectiveType !== jobType;
+    const isKar = ['taka-kar','losa-kar','skipta-kari','vantar-kar'].includes(effectiveType);
+    const isSkipta = effectiveType === 'skipta' || effectiveType === 'skipta-kari';
     const unitName = isKar ? 'karnúmer' : 'gámanúmer';
     const fields = {};
-    // Field-name suffix for secondary: containerNumber2, containerNumberTekinn2, containerNumberSettur2
     const fNumber = 'containerNumber' + suffix;
     const fTekinn = 'containerNumberTekinn' + suffix;
     const fSettur = 'containerNumberSettur' + suffix;
@@ -1306,15 +1313,45 @@
       if (!num) return { fields, error: `Sláðu inn ${unitName} (${suffix ? 'auka-aðgerð' : 'aðal-aðgerð'})` };
       fields[fNumber] = num;
     }
+    // Ef driver breytti aðgerð, geymum við upphaflegu beiðnina ósnortna en
+    // skrifum sérstök "actual" field. jobType stendur eftir eins og director skrifaði.
+    if (changed) {
+      fields['actualAction' + suffix] = effectiveType;
+    }
     return { fields, error: null };
   }
 
   // Builds one completion section (labels + number inputs + Nei hints)
   // for a specific jobType. Used twice on mixed beiðnir (primary + secondary).
+  // Driver getur breytt raunverulegri aðgerð í kláradaginn (losa → skipta o.s.frv.)
+  // án að snerta beiðnina sjálfa. Lykill: `${jobId}-${suffix}`.
+  const _actualActionBySection = new Map();
+  // Fyrir gefna jobType, finna "action family" (gámur eða kar) og current effective action
+  function getEffectiveJobType(job, jobType, suffix) {
+    const key = `${job.id}-${suffix}`;
+    return _actualActionBySection.get(key) || jobType;
+  }
+  // Þegar driver smellir á chip, uppfæra state og re-render
+  window.setActualAction = function(jobId, suffix, newType) {
+    const d = getData();
+    const job = d.jobs.find(j => j.id === jobId);
+    if (!job) return;
+    const originalType = suffix === '2' ? job.jobType2 : job.jobType;
+    const key = `${jobId}-${suffix}`;
+    if (newType === originalType) _actualActionBySection.delete(key);
+    else _actualActionBySection.set(key, newType);
+    renderAll();
+  };
+
   function renderCompletionSection(job, jobType, suffix, numbers) {
     if (!jobType) return '';
-    const isKar = ['taka-kar','losa-kar','skipta-kari','vantar-kar'].includes(jobType);
-    const isSkipta = jobType === 'skipta' || jobType === 'skipta-kari';
+    // Draga út raunverulegu aðgerðina (gæti verið breytt af driver)
+    const effectiveType = getEffectiveJobType(job, jobType, suffix);
+    const changed = effectiveType !== jobType;
+    const isKar = ['taka-kar','losa-kar','skipta-kari','vantar-kar'].includes(effectiveType);
+    const origIsKar = ['taka-kar','losa-kar','skipta-kari','vantar-kar'].includes(jobType);
+    const isSkipta = effectiveType === 'skipta' || effectiveType === 'skipta-kari';
+    jobType = effectiveType;
     const unit = isKar ? t('unit_kari') : t('unit_gami');
     const unitLong = isKar ? t('unit_karnumer') : t('unit_gamanumer');
     let singleLabel = unitLong;
@@ -1335,8 +1372,25 @@
     const neiHint = `<div class="nei-hint">${neiPrompt} <button type="button" class="nei-btn" onclick="markNei('${idSingle}')">${neiLbl}</button></div>`;
     const neiHintTekinn = `<div class="nei-hint">${neiPrompt} <button type="button" class="nei-btn" onclick="markNei('${idTekinn}')">${neiLbl}</button></div>`;
     const neiHintSettur = `<div class="nei-hint">${neiPrompt} <button type="button" class="nei-btn" onclick="markNei('${idSettur}')">${neiLbl}</button></div>`;
+
+    // Action chooser chips — driver má breyta aðgerðinni í praxis án að snerta beiðnina.
+    // Allir chip-arnir eiga við sama unit (gámur eða kar) — ekki hægt að breyta um unit.
+    const origTypeForSuffix = suffix === '2' ? job.jobType2 : job.jobType;
+    const actionOpts = origIsKar
+      ? [{v:'taka-kar',l:'Taka'},{v:'vantar-kar',l:'Setja'},{v:'losa-kar',l:'Losa'},{v:'skipta-kari',l:'Skipta'}]
+      : [{v:'sekja',l:'Taka'},{v:'fara',l:'Setja'},{v:'losa',l:'Losa'},{v:'skipta',l:'Skipta'}];
+    const chipsHtml = `
+      <div class="action-chooser" style="display:flex;gap:0.3rem;flex-wrap:wrap;margin-bottom:0.6rem;">
+        ${actionOpts.map(o => {
+          const active = effectiveType === o.v;
+          const isOrig = origTypeForSuffix === o.v;
+          return `<button type="button" class="action-chip${active ? ' active' : ''}" onclick="setActualAction('${job.id}','${suffix}','${o.v}')" title="${isOrig ? (_lang === 'en' ? 'Original request' : 'Upphafleg beiðni') : ''}">${o.l}${isOrig ? ' ★' : ''}</button>`;
+        }).join('')}
+      </div>
+      ${changed ? `<div style="font-size:0.72rem;color:#78350f;background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;padding:0.3rem 0.5rem;margin-bottom:0.5rem;">⚠ ${_lang === 'en' ? 'You changed from ' : 'Breytt frá '}<strong>${actionOpts.find(o=>o.v===origTypeForSuffix)?.l || origTypeForSuffix}</strong></div>` : ''}`;
     if (isSkipta) {
       return `<div class="container-input-wrap">
+        ${chipsHtml}
         <label>${tekinnLabel}</label>
         ${isKar ? karInputHtml(idTekinn, vTekinn) : `<input type="text" id="${idTekinn}" class="container-full-input" placeholder="${inputPh}" value="${vTekinn}" />`}
         ${neiHintTekinn}
@@ -1348,6 +1402,7 @@
       </div>`;
     }
     return `<div class="container-input-wrap">
+      ${chipsHtml}
       <label>${singleLabel}</label>
       <div class="container-row">
         ${isKar ? karInputHtml(idSingle, vSingle) : `<input type="text" id="${idSingle}" placeholder="${inputPh}" value="${vSingle}" />`}
@@ -1857,14 +1912,19 @@
     // so rental length is based on the driver's actual pickup/placement day.
     const workDate = todayISO();
     updated.workDate = workDate;
-    // Apply rental linking before saving. For mixed beiðnir, run rental logic for both types.
+    // Apply rental linking before saving. Ef driver breytti aðgerð (actualAction),
+    // nota EFFECTIVE jobType svo rental logic routing fer réttu leið (losa→skipta
+    // → rental logic sem skipta, ekki losa). jobType beiðninnar sjálft stendur
+    // eftir óbreytt ("fastur við beiðnina" eins og director skrifaði).
     const results = [];
-    const r1 = await applyContainerRentalLogic(updated, workDate);
+    const effPrimary = updated.actualAction ? { ...updated, jobType: updated.actualAction } : updated;
+    const r1 = await applyContainerRentalLogic(effPrimary, workDate);
     if (r1) results.push(r1);
     if (updated.jobType2) {
+      const secType = updated.actualAction2 || updated.jobType2;
       const jobForSecondary = {
         ...updated,
-        jobType: updated.jobType2,
+        jobType: secType,
         containerNumber: updated.containerNumber2,
         containerNumberTekinn: updated.containerNumberTekinn2,
         containerNumberSettur: updated.containerNumberSettur2
@@ -2000,12 +2060,14 @@
     delete updated.rentalWarnings;
     delete updated.twinPending;
     const results = [];
-    const r1 = await applyContainerRentalLogic(updated, updated.workDate);
+    const effPrimary = updated.actualAction ? { ...updated, jobType: updated.actualAction } : updated;
+    const r1 = await applyContainerRentalLogic(effPrimary, updated.workDate);
     if (r1) results.push(r1);
     if (updated.jobType2) {
+      const secType = updated.actualAction2 || updated.jobType2;
       const jobForSecondary = {
         ...updated,
-        jobType: updated.jobType2,
+        jobType: secType,
         containerNumber: updated.containerNumber2,
         containerNumberTekinn: updated.containerNumberTekinn2,
         containerNumberSettur: updated.containerNumberSettur2
