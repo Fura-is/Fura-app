@@ -1336,6 +1336,7 @@
     const d = getData();
     const job = d.jobs.find(j => j.id === jobId);
     if (!job) return;
+    snapshotJobInputs(jobId); // Halda þegar-innslegnum númerum þegar form breytist
     const originalType = suffix === '2' ? job.jobType2 : job.jobType;
     const key = `${jobId}-${suffix}`;
     if (newType === originalType) _actualActionBySection.delete(key);
@@ -1363,9 +1364,12 @@
     const idSingle = `container${suffix}-${job.id}`;
     const idTekinn = `container-tekinn${suffix}-${job.id}`;
     const idSettur = `container-settur${suffix}-${job.id}`;
-    const vSingle = numbers.containerNumber || '';
-    const vTekinn = numbers.containerNumberTekinn || '';
-    const vSettur = numbers.containerNumberSettur || '';
+    // Lesa pending (unsaved typed) values úr snapshot-i fyrst — annars gögn úr beiðninni
+    const p = _pendingByJob[job.id] || {};
+    const sfxKey = suffix === '2' ? 'main2' : 'main';
+    const vSingle = p[idSingle] || p[sfxKey] || numbers.containerNumber || '';
+    const vTekinn = p[idTekinn] || p[sfxKey + 'Tekinn'] || numbers.containerNumberTekinn || '';
+    const vSettur = p[idSettur] || p[sfxKey + 'Settur'] || numbers.containerNumberSettur || '';
     const neiPrompt = isKar ? t('compl_nei_hint_kari') : t('compl_nei_hint_gami');
     const neiLbl = t('compl_nei');
     const inputPh = t('compl_input_placeholder');
@@ -1474,15 +1478,19 @@
       // Auka-gámar/kör — driver can add unexpected units on-site
       const extras = _extrasMap[job.id] || [];
       const extraPh = t('compl_extra_input_placeholder');
-      const extrasHtml = extras.map(e => `
+      const pendExtras = (_pendingByJob[job.id] || {}).extras || {};
+      const extrasHtml = extras.map(e => {
+        const pendVal = pendExtras[e.key];
+        const effVal = pendVal != null && pendVal !== '' ? pendVal : (e.number || '');
+        return `
         <div class="extra-row">
           <div class="extra-label">${extraRowLabel(e)}</div>
           <div class="extra-input-wrap">
-            ${isKar ? karInputHtml(`extra-num-${job.id}-${e.key}`, e.number) : `<input type="text" id="extra-num-${job.id}-${e.key}" placeholder="${extraPh}" value="${e.number || ''}" />`}
+            ${isKar ? karInputHtml(`extra-num-${job.id}-${e.key}`, effVal) : `<input type="text" id="extra-num-${job.id}-${e.key}" placeholder="${extraPh}" value="${effVal}" />`}
             <button class="extra-remove" onclick="removeExtra('${job.id}', ${e.key})" aria-label="×">×</button>
           </div>
-        </div>
-      `).join('');
+        </div>`;
+      }).join('');
       const addExtraLabel = isKar ? t('extra_add_btn_kari') : t('extra_add_btn_gami');
       const addExtraBtn = `<button class="add-extra-btn" onclick="openExtraPicker('${job.id}', ${isKar})">${addExtraLabel}</button>`;
       const noteVal = job.completionNote ? job.completionNote.replace(/</g,'&lt;') : '';
@@ -1941,6 +1949,7 @@
     if (results.length) updated.rentalProcessed = true;
     // Clear local extras state since they're now saved
     delete _extrasMap[id];
+    clearPendingForJob(id);
     await fsSetJob(updated);
     window.switchTab('klarud');
     const anyKar = ['taka-kar','losa-kar','skipta-kari','vantar-kar'].includes(job.jobType) || ['taka-kar','losa-kar','skipta-kari','vantar-kar'].includes(job.jobType2 || '');
@@ -2084,6 +2093,7 @@
     if (results.length) updated.rentalProcessed = true;
     _fixingDoneId = null;
     delete _extrasMap[id];
+    clearPendingForJob(id);
     await fsSetJob(updated);
     showToast(t('toast_save_changes'));
   };
@@ -2175,6 +2185,46 @@
   // ── EXTRA CONTAINER PICKER (aukagámur) ────────────────────────────────────
   // State: pending extras per job (not yet submitted)
   let _extrasMap = {}; // { jobId: [{ key, action, efni, efniLabel }] }
+  // Transient geymsla á typed-but-not-yet-saved númerum. Áður en við köllum
+  // renderAll (t.d. þegar driver smellir á 'Bæta við aukakari'), snapshot-um
+  // við inntaka úr DOM — annars eyðast þau við re-render.
+  // Lagið: { jobId: { main: '123', mainTekinn: '', mainSettur: '', main2: '', main2Tekinn: '', main2Settur: '', extras: { key: '456' } } }
+  let _pendingByJob = {};
+  function snapshotJobInputs(jobId) {
+    const grab = (id) => {
+      const el = document.getElementById(id);
+      return el ? el.value : undefined;
+    };
+    const bucket = _pendingByJob[jobId] || {};
+    const upd = (name, val) => { if (val !== undefined && val !== '') bucket[name] = val; };
+    upd('main',        grab(`container-${jobId}`));
+    upd('mainTekinn',  grab(`container-tekinn-${jobId}`));
+    upd('mainSettur',  grab(`container-settur-${jobId}`));
+    upd('main2',       grab(`container2-${jobId}`));
+    upd('main2Tekinn', grab(`container-tekinn2-${jobId}`));
+    upd('main2Settur', grab(`container-settur2-${jobId}`));
+    // Kar-númer eru brotin niður í a + b (XX-XXX format) — líka úr aukareitum
+    for (const sfx of ['', '2']) {
+      for (const base of [`container${sfx}-${jobId}`, `container-tekinn${sfx}-${jobId}`, `container-settur${sfx}-${jobId}`]) {
+        const aEl = document.getElementById(base + '-a');
+        const bEl = document.getElementById(base + '-b');
+        if (aEl && bEl) {
+          const combined = (aEl.value || '').trim() + ((bEl.value || '').trim() ? '-' + bEl.value.trim() : '');
+          if (combined.trim()) bucket[base] = combined;
+        }
+      }
+    }
+    // Snapshotta núverandi gildi í hverju aukagámur-input
+    if (_extrasMap[jobId]) {
+      bucket.extras = bucket.extras || {};
+      for (const e of _extrasMap[jobId]) {
+        const el = document.getElementById(`extra-num-${jobId}-${e.key}`);
+        if (el && el.value) bucket.extras[e.key] = el.value;
+      }
+    }
+    _pendingByJob[jobId] = bucket;
+  }
+  function clearPendingForJob(jobId) { delete _pendingByJob[jobId]; }
   let _currentExtraJobId = null;
 
   window.openExtraPicker = function(jobId, isKar) {
@@ -2225,13 +2275,17 @@
     document.getElementById('extra-efni-step').style.display = 'none';
   };
   function addExtraToJob(jobId, action, efni, efniLabel) {
+    snapshotJobInputs(jobId); // Varðveita þegar-innslegin númer gegnum re-render
     if (!_extrasMap[jobId]) _extrasMap[jobId] = [];
     _extrasMap[jobId].push({ key: Date.now() + Math.random(), action, efni, efniLabel });
     renderAll();
   }
   window.removeExtra = function(jobId, key) {
     if (!_extrasMap[jobId]) return;
+    snapshotJobInputs(jobId);
     _extrasMap[jobId] = _extrasMap[jobId].filter(e => e.key != key);
+    // Hreinsa extra úr pending so ekki birtast á öðrum raðum
+    if (_pendingByJob[jobId]?.extras) delete _pendingByJob[jobId].extras[key];
     renderAll();
   };
   function efniDisplayLabel(efni, efniLabel) {
