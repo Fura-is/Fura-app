@@ -699,6 +699,7 @@
       btn_haetta: 'Hætta við',
       btn_laga: '✏ Laga',
       btn_afrita: '📋 Afrita',
+      btn_opna_kort: '📍 Opna í kortum',
       btn_copied: '✓ Afritað',
       // Completion labels
       compl_section_mixed: '🔀 Auka-aðgerð:',
@@ -878,6 +879,7 @@
       btn_haetta: 'Cancel',
       btn_laga: '✏ Edit',
       btn_afrita: '📋 Copy',
+      btn_opna_kort: '📍 Open in Maps',
       btn_copied: '✓ Copied',
       compl_section_mixed: '🔀 Secondary action:',
       compl_single_taka: 'Number of the {unit} you are <span style="color:var(--rust);font-weight:800;">PICKING UP</span>',
@@ -1565,7 +1567,7 @@
         <div class="job-detail ${cls(job.where)}">
           <strong>${t('label_stadsetning')}</strong>
           <span style="flex:1;">${job.where || '—'}</span>
-          ${job.where ? `<button class="copy-btn" onclick="copyAddress('${job.where.replace(/'/g, "\\'")}')">${t('btn_afrita')}</button>` : ''}
+          ${job.where ? `<button class="copy-btn" onclick="openInMaps(${job.lat != null ? job.lat : 'null'}, ${job.lng != null ? job.lng : 'null'}, '${(job.where || '').replace(/'/g, "\\'")}')">${t('btn_opna_kort')}</button>` : ''}
         </div>
         ${job.locationExtra ? `<div class="job-detail job-detail-filled"><strong>${t('label_annad')}</strong> ${job.locationExtra}</div>` : ''}
         <div class="job-detail ${cls(job.phone)}"><strong>${t('label_simi')}</strong> ${job.phone ? `<a class="phone-link" href="tel:${job.phone}">${job.phone}</a>` : '—'}</div>
@@ -2128,6 +2130,23 @@
     delete updated.delayNote; delete updated.delayImage;
     await fsSetJob(updated);
     showToast(t('toast_resumed'));
+  };
+
+  // Opnar Google Maps með HNIT úr beiðninni ef þau eru til (öruggt — enginn
+  // texti sem Google getur ruglast á). Fallback í texta-leit ef hnit vantar.
+  window.openInMaps = function(lat, lng, address) {
+    let url;
+    if (lat != null && lng != null) {
+      url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    } else if (address) {
+      // Strippa POI prefix 'Fyrirtæki — ' svo Google fær bara hreint heimilisfang
+      const cleaned = String(address).replace(/^[^—]+ — /, '');
+      url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cleaned)}`;
+    } else {
+      showToast(_lang === 'en' ? 'No address available' : 'Engin staðsetning í boði');
+      return;
+    }
+    window.open(url, '_blank');
   };
 
   window.copyAddress = function(address) {
