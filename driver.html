@@ -715,6 +715,10 @@
       unit_gamanumer: 'Gámanúmer',
       compl_input_placeholder: 'Sláðu inn númer...',
       compl_extra_input_placeholder: 'Sláðu inn gámanúmer...',
+      compl_extra_input_placeholder_kari: 'Sláðu inn karnúmer...',
+      extra_group_taka: '📥 TAKIÐ',
+      extra_group_setja: '📤 SETT',
+      extra_group_losa: '🔄 LOSAÐ',
       compl_note_summary: 'Athugasemd',
       compl_note_hint: '(valkvætt)',
       compl_note_placeholder: 'Var eitthvað að? Skráðu það hér...',
@@ -894,6 +898,10 @@
       unit_gamanumer: 'Container #',
       compl_input_placeholder: 'Enter number...',
       compl_extra_input_placeholder: 'Enter container number...',
+      compl_extra_input_placeholder_kari: 'Enter tub number...',
+      extra_group_taka: '📥 PICKED UP',
+      extra_group_setja: '📤 DROPPED OFF',
+      extra_group_losa: '🔄 EMPTIED',
       compl_note_summary: 'Note',
       compl_note_hint: '(optional)',
       compl_note_placeholder: 'Any issues? Note them here...',
@@ -1477,22 +1485,40 @@
           <button class="btn btn-mid btn-sm" onclick="showDelayForm('${job.id}')">${t('btn_fresta')}</button>
         </div>`;
     } else if ((job.status === 'onway' && !isDelaying) || isFixingThis) {
-      // Auka-gámar/kör — driver can add unexpected units on-site
+      // Auka-gámar/kör — driver can add unexpected units on-site. Grúpa eftir
+      // aðgerð (taka/setja/losa) svo driver sjái skipulag áður en Sótt.
       const extras = _extrasMap[job.id] || [];
-      const extraPh = t('compl_extra_input_placeholder');
+      const extraPh = isKar ? t('compl_extra_input_placeholder_kari') : t('compl_extra_input_placeholder');
       const pendExtras = (_pendingByJob[job.id] || {}).extras || {};
-      const extrasHtml = extras.map(e => {
+      const unitShortLbl = isKar ? (_lang === 'en' ? 'Tub #' : 'Karnúmer') : (_lang === 'en' ? 'Container #' : 'Gámanúmer');
+      const renderExtraRow = (e) => {
         const pendVal = pendExtras[e.key];
         const effVal = pendVal != null && pendVal !== '' ? pendVal : (e.number || '');
+        const efni = (e.action === 'taka' || e.action === 'losa') ? efniDisplayLabel(e.efni, e.efniLabel) : '';
+        const efniTag = efni ? `<span style="font-size:0.72rem;color:var(--muted);font-weight:600;margin-left:0.4rem;">· ${efni}</span>` : '';
         return `
-        <div class="extra-row">
-          <div class="extra-label">${extraRowLabel(e)}</div>
-          <div class="extra-input-wrap">
-            ${isKar ? karInputHtml(`extra-num-${job.id}-${e.key}`, effVal) : `<input type="text" id="extra-num-${job.id}-${e.key}" placeholder="${extraPh}" value="${effVal}" />`}
-            <button class="extra-remove" onclick="removeExtra('${job.id}', ${e.key})" aria-label="×">×</button>
-          </div>
-        </div>`;
-      }).join('');
+          <div class="extra-input-wrap" style="margin-top:0.4rem;">
+            <div style="flex:1;">
+              <div style="font-size:0.72rem;color:var(--muted);font-weight:700;margin-bottom:0.15rem;">${unitShortLbl}${efniTag}</div>
+              ${isKar ? karInputHtml(`extra-num-${job.id}-${e.key}`, effVal) : `<input type="text" id="extra-num-${job.id}-${e.key}" placeholder="${extraPh}" value="${effVal}" />`}
+            </div>
+            <button class="extra-remove" onclick="removeExtra('${job.id}', ${e.key})" aria-label="×" style="align-self:flex-end;margin-bottom:0.25rem;">×</button>
+          </div>`;
+      };
+      const groupTaka = extras.filter(e => e.action === 'taka');
+      const groupSetja = extras.filter(e => e.action === 'setja');
+      const groupLosa = extras.filter(e => e.action === 'losa');
+      const groupBlock = (title, color, items) => items.length
+        ? `<div class="extra-group" style="margin-top:0.75rem;padding:0.7rem 0.85rem;background:rgba(196,98,26,0.07);border:1.5px solid ${color};border-radius:8px;">
+             <div style="font-weight:800;font-size:0.82rem;color:${color};">${title} (${items.length})</div>
+             ${items.map(renderExtraRow).join('')}
+           </div>`
+        : '';
+      const extrasHtml = [
+        groupBlock(t('extra_group_taka'), 'var(--rust)', groupTaka),
+        groupBlock(t('extra_group_setja'), 'var(--green)', groupSetja),
+        groupBlock(t('extra_group_losa'), '#b45309', groupLosa)
+      ].join('');
       const addExtraLabel = isKar ? t('extra_add_btn_kari') : t('extra_add_btn_gami');
       const addExtraBtn = `<button class="add-extra-btn" onclick="openExtraPicker('${job.id}', ${isKar})">${addExtraLabel}</button>`;
       const noteVal = job.completionNote ? job.completionNote.replace(/</g,'&lt;') : '';
