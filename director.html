@@ -6345,6 +6345,27 @@
       showToast('Villa við að ná í hnit: ' + e.message);
     }
   };
+  // Byggja heimilisfang úr structured Nominatim svari svo götuheiti + húsnúmer
+  // + bær/póstnúmer séu alltaf með (þegar OSM á þau). Fyrri útgáfa klippti
+  // bara display_name sem gaf "Byko, Vellir" fyrir fyrirtæki með margar
+  // stöðvar — ónógt. Nýja formatið er: '[Nafn —] Gata Hús, Póstnr. Bær'.
+  function formatGeoResult(r) {
+    const a = r.address || {};
+    const street = [a.road, a.house_number].filter(Boolean).join(' ');
+    const city = [a.postcode, a.city || a.town || a.village || a.municipality || a.suburb].filter(Boolean).join(' ');
+    const poi = a.shop || a.amenity || a.office || a.industrial || a.craft || a.building || null;
+    const addrStr = [street, city].filter(Boolean).join(', ');
+    if (!addrStr) return r.display_name.split(',').slice(0, 2).join(',').trim();
+    return poi ? `${poi} — ${addrStr}` : addrStr;
+  }
+  function geoResultWarnings(r) {
+    const a = r.address || {};
+    const warns = [];
+    if (!a.road) warns.push('Vantar götuheiti');
+    else if (!a.house_number) warns.push('Vantar húsnúmer');
+    if (!a.postcode && !a.city && !a.town && !a.village) warns.push('Vantar póstnr/bæ');
+    return warns;
+  }
   function showGeoResultsModal(results) {
     const existing = document.getElementById('geo-results-modal');
     if (existing) existing.remove();
@@ -6357,12 +6378,20 @@
           <h3 style="margin:0;font-size:1.05rem;">Veldu rétta staðsetningu</h3>
           <button type="button" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--muted);" onclick="closeGeoResults()">×</button>
         </div>
-        ${results.map((r, i) => `
-          <div class="geo-result-item" onclick="pickGeoResult(${i})">
-            <div style="font-weight:700;">${escHtml(r.display_name.split(',').slice(0, 2).join(','))}</div>
-            <div style="font-size:0.78rem;color:var(--muted);margin-top:0.2rem;">${escHtml(r.display_name)}</div>
-          </div>
-        `).join('')}
+        <div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.75rem;">Það sem þú velur hér er NÁKVÆMLEGA það sem fer í Staðsetning reit beiðninnar.</div>
+        ${results.map((r, i) => {
+          const nice = formatGeoResult(r);
+          const warns = geoResultWarnings(r);
+          const warnHtml = warns.length
+            ? `<div style="font-size:0.72rem;color:var(--red);font-weight:700;margin-top:0.35rem;">⚠ ${warns.join(' · ')}</div>`
+            : '';
+          return `
+            <div class="geo-result-item" onclick="pickGeoResult(${i})">
+              <div style="font-weight:800;">${escHtml(nice)}</div>
+              ${warnHtml}
+              <div style="font-size:0.72rem;color:var(--muted);margin-top:0.3rem;opacity:0.75;">${escHtml(r.display_name)}</div>
+            </div>`;
+        }).join('')}
       </div>`;
     document.body.appendChild(modal);
     window._geoResultsCache = results;
@@ -6375,7 +6404,7 @@
   window.pickGeoResult = function(i) {
     const r = (window._geoResultsCache || [])[i];
     if (!r) return;
-    const nice = r.display_name.split(',').slice(0, 2).join(',').trim();
+    const nice = formatGeoResult(r);
     document.getElementById('job-where').value = nice;
     setJobGeoStatus(parseFloat(r.lat), parseFloat(r.lon), nice);
     closeGeoResults();
